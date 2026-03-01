@@ -18,14 +18,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final sl = GetIt.instance;
 
-/// Dependency Injection Setup
-/// Configuración de inyección de dependencias con get_it
 Future<void> initializeDependencies() async {
-  // External Dependencies
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
-  // Dio Client
   sl.registerLazySingleton<Dio>(() {
     final dio = Dio(
       BaseOptions(
@@ -39,7 +35,6 @@ Future<void> initializeDependencies() async {
       ),
     );
 
-    // Add interceptor for authentication
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -55,12 +50,10 @@ Future<void> initializeDependencies() async {
     return dio;
   });
 
-  // Google Sign In
-  sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn(
-    scopes: ['email', 'profile'],
-  ));
+  sl.registerLazySingleton<GoogleSignIn>(
+    () => GoogleSignIn(scopes: ['email', 'profile']),
+  );
 
-  // Data Sources
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
   );
@@ -69,22 +62,16 @@ Future<void> initializeDependencies() async {
     () => AuthRemoteDataSourceImpl(dio: sl(), googleSignIn: sl()),
   );
 
-  // Repositories
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(
-      remoteDataSource: sl(),
-      localDataSource: sl(),
-    ),
+    () => AuthRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()),
   );
 
-  // Use Cases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
 
-  // BLoCs
   sl.registerFactory(
     () => AuthBloc(
       loginUseCase: sl(),

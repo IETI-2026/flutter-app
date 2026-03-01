@@ -8,8 +8,6 @@ import 'package:flutter_app/domain/usecases/signup_usecase.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 
-/// Auth BLoC
-/// Gestiona el estado de autenticación
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
   final SignUpUseCase signUpUseCase;
@@ -32,7 +30,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<GetCurrentUserEvent>(_onGetCurrentUser);
   }
 
-  /// Handle Login Event
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
 
@@ -55,7 +52,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Handle Sign Up Event
   Future<void> _onSignUp(SignUpEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
 
@@ -81,7 +77,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Handle Login With Google Event
   Future<void> _onLoginWithGoogle(
     LoginWithGoogleEvent event,
     Emitter<AuthState> emit,
@@ -104,7 +99,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Handle Logout Event
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     emit(const AuthLoading());
 
@@ -116,7 +110,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const Unauthenticated());
   }
 
-  /// Handle Check Auth Status Event
   Future<void> _onCheckAuthStatus(
     CheckAuthStatusEvent event,
     Emitter<AuthState> emit,
@@ -139,7 +132,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  /// Handle Get Current User Event
   Future<void> _onGetCurrentUser(
     GetCurrentUserEvent event,
     Emitter<AuthState> emit,

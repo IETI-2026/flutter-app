@@ -46,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('CameYa'),
+        title: const Text('CameYo'),
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
         actions: [

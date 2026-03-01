@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 
-/// Social Button
-/// Botón para login con redes sociales
 class SocialButton extends StatelessWidget {
   final String text;
   final IconData icon;

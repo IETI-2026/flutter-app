@@ -7,8 +7,6 @@ import 'package:flutter_app/data/models/user_model.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Auth Local Data Source Implementation
-/// Implementación de operaciones locales de autenticación
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final SharedPreferences sharedPreferences;
 

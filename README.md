@@ -1,4 +1,4 @@
-# CameYa - Plataforma de Servicios Bajo Demanda
+# CameYo - Plataforma de Servicios Bajo Demanda
 
 Una aplicación móvil Flutter que conecta usuarios con proveedores de servicios domésticos y técnicos de manera segura, eficiente e inteligente.
 
@@ -76,7 +76,7 @@ flutter clean
 
 ## 🎨 Tema y Colores
 
-Paleta basada en el logo de CameYa:
+Paleta basada en el logo de CameYo:
 
 - **Primary**: #4A80F5 (Azul)
 - **Secondary**: #FFB800 (Amarillo)
@@ -114,4 +114,4 @@ Este es un proyecto educativo. Para consultas, contactar al equipo de desarrollo
 
 ---
 
-**CameYa** - Servicios al Instante 🚀
+**CameYo** - Servicios al Instante 🚀

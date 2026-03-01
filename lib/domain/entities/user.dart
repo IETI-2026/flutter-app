@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// User Entity
-/// Entidad de dominio que representa un usuario
 class User extends Equatable {
   final String id;
   final String email;
@@ -47,12 +45,9 @@ class User extends Equatable {
     lastLoginAt,
   ];
 
-  /// Check if user is a client
   bool get isClient => role == 'client' || role == 'CLIENT';
 
-  /// Check if user is a provider
   bool get isProvider => role == 'provider' || role == 'PROVIDER';
 
-  /// Check if user is active
   bool get isActive => status == 'ACTIVE';
 }

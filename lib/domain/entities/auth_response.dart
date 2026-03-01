@@ -1,8 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 
-/// Auth Response Entity
-/// Entidad que representa la respuesta de autenticación
 class AuthResponse extends Equatable {
   final String accessToken;
   final String refreshToken;

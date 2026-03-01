@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 
-/// App Theme
-/// Configuración del tema de la aplicación
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
@@ -19,7 +17,6 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.backgroundLight,
 
-      // App Bar Theme
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -28,7 +25,6 @@ class AppTheme {
         iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
 
-      // Input Decoration Theme
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.white,
@@ -59,7 +55,6 @@ class AppTheme {
         hintStyle: TextStyle(color: AppColors.textHint),
       ),
 
-      // Elevated Button Theme
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -73,7 +68,6 @@ class AppTheme {
         ),
       ),
 
-      // Outlined Button Theme
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
@@ -86,7 +80,6 @@ class AppTheme {
         ),
       ),
 
-      // Text Theme
       textTheme: const TextTheme(
         displayLarge: TextStyle(
           fontSize: 32,
@@ -130,7 +123,6 @@ class AppTheme {
         ),
       ),
 
-      // Card Theme
       cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

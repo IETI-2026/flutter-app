@@ -9,8 +9,6 @@ import 'package:flutter_app/domain/entities/auth_response.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-/// Auth Remote Data Source Implementation
-/// Implementación de operaciones remotas de autenticación
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
   final GoogleSignIn googleSignIn;
@@ -80,7 +78,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
           'fullName': fullName,
           'role': role,
-          if (phoneNumber != null) 'phoneNumber': phoneNumber,
+          'phoneNumber': ?phoneNumber,
         },
       );
 
@@ -121,25 +119,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       AppLogger.info('Google login attempt');
 
-      // First, get Google auth URL from backend
       final urlResponse = await dio.get('${AppConstants.authEndpoint}/google');
 
       if (urlResponse.statusCode != 200) {
         throw ServerException('Failed to get Google auth URL');
       }
 
-      // Sign in with Google
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
         throw AuthException('Google sign in cancelled');
       }
 
-      // Get auth details
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // Send to backend
       final response = await dio.get(
         '${AppConstants.authEndpoint}/google/callback',
         queryParameters: {'code': googleAuth.idToken},
@@ -252,7 +246,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       await dio.post('${AppConstants.authEndpoint}/logout');
 
-      // Also sign out from Google if signed in
       if (await googleSignIn.isSignedIn()) {
         await googleSignIn.signOut();
       }
@@ -260,10 +253,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       AppLogger.info('Logout successful');
     } on DioException catch (e) {
       AppLogger.error('Logout error', e);
-      // Don't throw error on logout, just log it
     } catch (e) {
       AppLogger.error('Unexpected logout error', e);
-      // Don't throw error on logout, just log it
     }
   }
 }

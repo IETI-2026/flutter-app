@@ -7,8 +7,6 @@ import 'package:flutter_app/domain/entities/auth_response.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
 
-/// Auth Repository Implementation
-/// Implementación del repositorio de autenticación
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
   final AuthLocalDataSource localDataSource;
@@ -29,7 +27,6 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      // Save tokens locally
       await localDataSource.saveAccessToken(authResponse.accessToken);
       await localDataSource.saveRefreshToken(authResponse.refreshToken);
       await localDataSource.saveUserRole(authResponse.user.role);
@@ -64,7 +61,6 @@ class AuthRepositoryImpl implements AuthRepository {
         phoneNumber: phoneNumber,
       );
 
-      // Save tokens locally
       await localDataSource.saveAccessToken(authResponse.accessToken);
       await localDataSource.saveRefreshToken(authResponse.refreshToken);
       await localDataSource.saveUserRole(authResponse.user.role);
@@ -108,7 +104,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, AuthResponse>> refreshToken(String refreshToken) async {
+  Future<Either<Failure, AuthResponse>> refreshToken(
+    String refreshToken,
+  ) async {
     try {
       final authResponse = await remoteDataSource.refreshToken(refreshToken);
 
@@ -131,13 +129,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
-      // First try to get from local storage
       final cachedUser = await localDataSource.getUserData();
       if (cachedUser != null) {
         return Right(cachedUser);
       }
 
-      // If not in cache, fetch from server
       final user = await remoteDataSource.getCurrentUser();
       await localDataSource.saveUserData(user);
 
@@ -163,7 +159,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       return const Right(null);
     } catch (e) {
-      // Even if remote logout fails, clear local data
       await localDataSource.clearAll();
       return const Right(null);
     }

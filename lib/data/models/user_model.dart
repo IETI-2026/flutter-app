@@ -1,7 +1,5 @@
 import 'package:flutter_app/domain/entities/user.dart';
 
-/// User Model
-/// Modelo de datos que extiende la entidad User
 class UserModel extends User {
   const UserModel({
     required super.id,
@@ -18,7 +16,6 @@ class UserModel extends User {
     super.lastLoginAt,
   });
 
-  /// From JSON
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? '',
@@ -40,7 +37,6 @@ class UserModel extends User {
     );
   }
 
-  /// To JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -58,7 +54,6 @@ class UserModel extends User {
     };
   }
 
-  /// To Entity
   User toEntity() {
     return User(
       id: id,

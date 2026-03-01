@@ -18,8 +18,6 @@ class _LoginScreenState extends State<LoginScreen>
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  // Nota: Los tabs de Cliente/Profesional son solo visuales
-  // El backend asigna el rol automáticamente
   late TabController _tabController;
 
   @override

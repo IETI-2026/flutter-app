@@ -1,8 +1,6 @@
 import 'package:flutter_app/data/models/user_model.dart';
 import 'package:flutter_app/domain/entities/auth_response.dart';
 
-/// Auth Response Model
-/// Modelo de datos para la respuesta de autenticación
 class AuthResponseModel extends AuthResponse {
   const AuthResponseModel({
     required super.accessToken,
@@ -10,7 +8,6 @@ class AuthResponseModel extends AuthResponse {
     required super.user,
   });
 
-  /// From JSON
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
     return AuthResponseModel(
       accessToken: json['accessToken'] ?? json['access_token'] ?? '',
@@ -19,7 +16,6 @@ class AuthResponseModel extends AuthResponse {
     );
   }
 
-  /// To JSON
   Map<String, dynamic> toJson() {
     return {
       'accessToken': accessToken,
@@ -28,7 +24,6 @@ class AuthResponseModel extends AuthResponse {
     };
   }
 
-  /// To Entity
   AuthResponse toEntity() {
     return AuthResponse(
       accessToken: accessToken,

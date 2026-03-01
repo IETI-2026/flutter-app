@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 
-/// Client Home Page
-/// Pantalla principal para clientes
 class ClientHomePage extends StatelessWidget {
   const ClientHomePage({super.key});
 
@@ -22,7 +20,7 @@ class ClientHomePage extends StatelessWidget {
               backgroundColor: AppColors.white,
               elevation: 0,
               title: const Text(
-                'CameYa',
+                'CameYo',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,
@@ -47,7 +45,6 @@ class ClientHomePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Welcome Section
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
@@ -174,7 +171,9 @@ class ClientHomePage extends StatelessWidget {
                                 'Aún no has solicitado servicios',
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: AppColors.textSecondary.withOpacity(0.7),
+                                  color: AppColors.textSecondary.withOpacity(
+                                    0.7,
+                                  ),
                                 ),
                               ),
                             ],
@@ -226,11 +225,7 @@ class ClientHomePage extends StatelessWidget {
           );
         }
 
-        return const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        );
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
       },
     );
   }
@@ -238,9 +233,7 @@ class ClientHomePage extends StatelessWidget {
   Widget _buildServiceCard(String title, IconData icon, Color color) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           // TODO: Navigate to service detail
@@ -258,11 +251,7 @@ class ClientHomePage extends StatelessWidget {
                   color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: color,
-                ),
+                child: Icon(icon, size: 32, color: color),
               ),
               const SizedBox(height: 12),
               Text(

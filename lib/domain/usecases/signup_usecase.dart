@@ -3,8 +3,6 @@ import 'package:flutter_app/core/error/failures.dart';
 import 'package:flutter_app/domain/entities/auth_response.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
 
-/// Sign Up Use Case
-/// Caso de uso para registrarse con email y contraseña
 class SignUpUseCase {
   final AuthRepository repository;
 

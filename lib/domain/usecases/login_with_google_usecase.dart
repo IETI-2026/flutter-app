@@ -3,8 +3,6 @@ import 'package:flutter_app/core/error/failures.dart';
 import 'package:flutter_app/domain/entities/auth_response.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
 
-/// Login With Google Use Case
-/// Caso de uso para iniciar sesión con Google
 class LoginWithGoogleUseCase {
   final AuthRepository repository;
 

@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 
-/// Provider Home Page
-/// Pantalla principal para proveedores de servicios
 class ProviderHomePage extends StatelessWidget {
   const ProviderHomePage({super.key});
 
@@ -22,7 +20,7 @@ class ProviderHomePage extends StatelessWidget {
               backgroundColor: AppColors.white,
               elevation: 0,
               title: const Text(
-                'CameYa Pro',
+                'CameYo Pro',
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold,

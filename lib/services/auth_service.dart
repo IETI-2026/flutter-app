@@ -95,9 +95,6 @@ class AuthService {
         body: jsonEncode(data),
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📄 Response: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
 
