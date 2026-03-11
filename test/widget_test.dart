@@ -7,8 +7,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:flutter_app/main.dart';
-import 'package:flutter_app/core/app.dart';
 
 void main() {
   testWidgets('CameYo app smoke test', (WidgetTester tester) async {

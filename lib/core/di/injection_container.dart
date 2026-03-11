@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
+import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource_impl.dart';
+import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
 import 'package:flutter_app/data/repositories/auth_repository_impl.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
 import 'package:flutter_app/domain/usecases/get_current_user_usecase.dart';
@@ -12,6 +14,7 @@ import 'package:flutter_app/domain/usecases/login_with_google_usecase.dart';
 import 'package:flutter_app/domain/usecases/logout_usecase.dart';
 import 'package:flutter_app/domain/usecases/signup_usecase.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
+import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -21,6 +24,8 @@ final sl = GetIt.instance;
 Future<void> initializeDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+
+  sl.registerLazySingleton<TenantService>(() => TenantService());
 
   sl.registerLazySingleton<Dio>(() {
     final dio = Dio(
@@ -41,6 +46,11 @@ Future<void> initializeDependencies() async {
           final token = await sl<AuthLocalDataSource>().getAccessToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+          }
+          // Add tenant header to non-auth requests
+          final isAuthRequest = options.path.contains('/auth/');
+          if (!isAuthRequest) {
+            options.headers['X-Tenant-ID'] = sl<TenantService>().tenantId;
           }
           return handler.next(options);
         },
@@ -66,11 +76,19 @@ Future<void> initializeDependencies() async {
     () => AuthRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()),
   );
 
+  sl.registerLazySingleton<GeocodingRemoteDataSource>(
+    () => GeocodingRemoteDataSource(dio: sl()),
+  );
+
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
+
+  sl.registerFactory(
+    () => LocationCubit(geocodingDataSource: sl(), tenantService: sl()),
+  );
 
   sl.registerFactory(
     () => AuthBloc(
