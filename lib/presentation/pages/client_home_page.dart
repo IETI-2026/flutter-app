@@ -57,7 +57,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
             controller: problemaController,
             maxLines: 3,
             decoration: const InputDecoration(
-              hintText: 'Ej: El lavamanos tiene una fuga y gotea constantemente',
+              hintText:
+                  'Ej: El lavamanos tiene una fuga y gotea constantemente',
             ),
           ),
           actions: [
@@ -66,8 +67,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(problemaController.text.trim()),
+              onPressed: () => Navigator.of(
+                dialogContext,
+              ).pop(problemaController.text.trim()),
               child: const Text('Crear solicitud'),
             ),
           ],
@@ -339,10 +341,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.grey,
             items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Inicio',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.search),
                 label: 'Buscar',

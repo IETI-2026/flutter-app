@@ -245,9 +245,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                               'No hay solicitudes pendientes',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppColors.textSecondary.withOpacity(
-                                  0.7,
-                                ),
+                                color: AppColors.textSecondary.withOpacity(0.7),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -255,9 +253,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                               'Recibirás notificaciones cuando haya nuevas solicitudes',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textSecondary.withOpacity(
-                                  0.5,
-                                ),
+                                color: AppColors.textSecondary.withOpacity(0.5),
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -287,9 +283,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                               'No tienes servicios activos',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: AppColors.textSecondary.withOpacity(
-                                  0.7,
-                                ),
+                                color: AppColors.textSecondary.withOpacity(0.7),
                               ),
                             ),
                           ],
@@ -307,18 +301,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.grey,
             items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Inicio',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt),
                 label: 'Solicitudes',
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.work),
-                label: 'Activos',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Activos'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person),
                 label: 'Perfil',
