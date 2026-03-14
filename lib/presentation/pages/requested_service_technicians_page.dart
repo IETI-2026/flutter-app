@@ -4,10 +4,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 class RequestedServiceTechniciansPage extends StatelessWidget {
   final String requestId;
 
-  const RequestedServiceTechniciansPage({
-    super.key,
-    required this.requestId,
-  });
+  const RequestedServiceTechniciansPage({super.key, required this.requestId});
 
   @override
   Widget build(BuildContext context) {
@@ -48,19 +45,13 @@ class RequestedServiceTechniciansPage extends StatelessWidget {
               const Text(
                 'Aquí verás los técnicos que aceptaron tu servicio.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 10),
               Text(
                 'Solicitud: $requestId',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textHint,
-                ),
+                style: const TextStyle(fontSize: 12, color: AppColors.textHint),
               ),
             ],
           ),

@@ -135,15 +135,16 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
         total = rawRequests.length;
       }
 
-      final parsedRequests = rawRequests
-          .whereType<Map<String, dynamic>>()
-          .map(_parseServiceRequest)
-          .toList()
-        ..sort((a, b) {
-          final aDate = a.updatedAt ?? a.createdAt;
-          final bDate = b.updatedAt ?? b.createdAt;
-          return bDate.compareTo(aDate);
-        });
+      final parsedRequests =
+          rawRequests
+              .whereType<Map<String, dynamic>>()
+              .map(_parseServiceRequest)
+              .toList()
+            ..sort((a, b) {
+              final aDate = a.updatedAt ?? a.createdAt;
+              final bDate = b.updatedAt ?? b.createdAt;
+              return bDate.compareTo(aDate);
+            });
 
       if (!mounted) {
         return;
@@ -164,7 +165,8 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
           final serverMessage = e.response?.data is Map<String, dynamic>
               ? e.response?.data['message']?.toString()
               : null;
-          _error = serverMessage ?? 'Error ${e.response?.statusCode ?? 'de red'}';
+          _error =
+              serverMessage ?? 'Error ${e.response?.statusCode ?? 'de red'}';
         } else {
           _error = e.toString();
         }
@@ -386,10 +388,7 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
             const SizedBox(height: 8),
             const Text(
               'Prueba ajustando los filtros',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textHint,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textHint),
             ),
           ],
         ),
@@ -407,7 +406,8 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
             return _buildSummaryRow();
           }
           final request = _requests[index - 1];
-          final canOpenTechnicians = request.status.toUpperCase() == 'REQUESTED';
+          final canOpenTechnicians =
+              request.status.toUpperCase() == 'REQUESTED';
           return _ServiceRequestCard(
             request: request,
             onTap: canOpenTechnicians
@@ -503,8 +503,9 @@ class _FilterPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedCrossFade(
       duration: const Duration(milliseconds: 220),
-      crossFadeState:
-          expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+      crossFadeState: expanded
+          ? CrossFadeState.showSecond
+          : CrossFadeState.showFirst,
       firstChild: const SizedBox.shrink(),
       secondChild: Container(
         color: AppColors.white,
@@ -685,10 +686,7 @@ class _FilterTextField extends StatelessWidget {
           style: const TextStyle(fontSize: 13),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              fontSize: 12,
-              color: AppColors.textHint,
-            ),
+            hintStyle: const TextStyle(fontSize: 12, color: AppColors.textHint),
             prefixIcon: Icon(icon, size: 16, color: AppColors.grey),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 36,
@@ -788,131 +786,135 @@ class _ServiceRequestCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.build_outlined,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        request.problema,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatDate(request.updatedAt ?? request.createdAt),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
+                      child: const Icon(
+                        Icons.build_outlined,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            request.problema,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatDate(request.updatedAt ?? request.createdAt),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _StatusBadge(
+                      label: statusInfo.label,
+                      color: statusInfo.color,
+                    ),
+                    if (onTap != null) ...[
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: AppColors.greyLight),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (request.requestedSkills.isNotEmpty)
+                      Expanded(
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: request.requestedSkills
+                              .map((skill) => _SkillChip(label: skill))
+                              .toList(),
+                        ),
+                      ),
+                    if (urgencyInfo != null) ...[
+                      if (request.requestedSkills.isNotEmpty)
+                        const SizedBox(width: 8),
+                      _StatusBadge(
+                        label: urgencyInfo.label,
+                        color: urgencyInfo.color,
+                      ),
+                    ],
+                  ],
+                ),
+                if (request.addressText != null &&
+                    request.addressText!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          request.addressText!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                _StatusBadge(label: statusInfo.label, color: statusInfo.color),
-                if (onTap != null) ...[
-                  const SizedBox(width: 8),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: AppColors.textSecondary,
-                  ),
                 ],
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Divider(height: 1, color: AppColors.greyLight),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (request.requestedSkills.isNotEmpty)
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: request.requestedSkills
-                          .map((skill) => _SkillChip(label: skill))
-                          .toList(),
-                    ),
-                  ),
-                if (urgencyInfo != null) ...[
-                  if (request.requestedSkills.isNotEmpty)
-                    const SizedBox(width: 8),
-                  _StatusBadge(
-                    label: urgencyInfo.label,
-                    color: urgencyInfo.color,
-                  ),
-                ],
-              ],
-            ),
-            if (request.addressText != null && request.addressText!.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      request.addressText!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
+                if (request.assignedTechnicianId != null) ...[
+                  const SizedBox(height: 6),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.engineering_outlined,
+                        size: 14,
+                        color: AppColors.success,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Técnico asignado',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
-            if (request.assignedTechnicianId != null) ...[
-              const SizedBox(height: 6),
-              const Row(
-                children: [
-                  Icon(
-                    Icons.engineering_outlined,
-                    size: 14,
-                    color: AppColors.success,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Técnico asignado',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ],
               ],
             ),
           ),

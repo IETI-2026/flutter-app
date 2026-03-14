@@ -134,9 +134,13 @@ Future<void> initializeDependencies() async {
             final token = await sl<AuthLocalDataSource>().getAccessToken();
             if (token != null && token.isNotEmpty) {
               _setAuthorizationHeader(options.headers, token);
-              AppLogger.debug('Auth interceptor: token attached to ${options.path}');
+              AppLogger.debug(
+                'Auth interceptor: token attached to ${options.path}',
+              );
             } else {
-              AppLogger.warning('Auth interceptor: no token found for ${options.path}');
+              AppLogger.warning(
+                'Auth interceptor: no token found for ${options.path}',
+              );
             }
           } catch (e) {
             AppLogger.error('Auth interceptor: failed to get token', e);
@@ -157,11 +161,13 @@ Future<void> initializeDependencies() async {
 
           if (statusCode == 401 && !isAuthRequest && !alreadyRetried) {
             try {
-              final refreshToken =
-                  await sl<AuthLocalDataSource>().getRefreshToken();
+              final refreshToken = await sl<AuthLocalDataSource>()
+                  .getRefreshToken();
 
               if (refreshToken == null || refreshToken.isEmpty) {
-                AppLogger.warning('Refresh skipped: no refresh token available');
+                AppLogger.warning(
+                  'Refresh skipped: no refresh token available',
+                );
                 return handler.next(error);
               }
 
@@ -215,10 +221,7 @@ Future<void> initializeDependencies() async {
 
               final retryOptions = requestOptions.copyWith(
                 headers: retryHeaders,
-                extra: {
-                  ...requestOptions.extra,
-                  'retryAfterRefresh': true,
-                },
+                extra: {...requestOptions.extra, 'retryAfterRefresh': true},
               );
 
               final retryResponse = await dio.fetch(retryOptions);

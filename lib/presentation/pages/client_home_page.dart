@@ -535,11 +535,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     try {
       final response = await sl<Dio>().get(
         '/service-requests',
-        queryParameters: {
-          'userId': userId,
-          'page': 0,
-          'limit': 20,
-        },
+        queryParameters: {'userId': userId, 'page': 0, 'limit': 20},
         options: tenantId != null && tenantId.isNotEmpty
             ? Options(headers: {'X-Tenant-ID': tenantId})
             : null,
@@ -556,30 +552,32 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
       final requests = list
           .whereType<Map<String, dynamic>>()
-          .map((json) => ServiceRequest(
-                id: json['id']?.toString() ?? '',
-                userId: json['userId']?.toString() ?? '',
-                assignedTechnicianId: json['assignedTechnicianId']?.toString(),
-                problema: json['problema']?.toString() ?? '',
-                status: json['status']?.toString() ?? 'UNKNOWN',
-                urgency: json['urgency']?.toString(),
-                requestedSkills: (json['requestedSkills'] is List)
-                    ? (json['requestedSkills'] as List)
+          .map(
+            (json) => ServiceRequest(
+              id: json['id']?.toString() ?? '',
+              userId: json['userId']?.toString() ?? '',
+              assignedTechnicianId: json['assignedTechnicianId']?.toString(),
+              problema: json['problema']?.toString() ?? '',
+              status: json['status']?.toString() ?? 'UNKNOWN',
+              urgency: json['urgency']?.toString(),
+              requestedSkills: (json['requestedSkills'] is List)
+                  ? (json['requestedSkills'] as List)
                         .map((skill) => skill.toString())
                         .toList()
-                    : const [],
-                latitude: (json['latitude'] as num?)?.toDouble(),
-                longitude: (json['longitude'] as num?)?.toDouble(),
-                addressText: json['addressText']?.toString(),
-                serviceCity: json['serviceCity']?.toString(),
-                createdAt: json['createdAt'] != null
-                    ? DateTime.tryParse(json['createdAt'].toString()) ??
+                  : const [],
+              latitude: (json['latitude'] as num?)?.toDouble(),
+              longitude: (json['longitude'] as num?)?.toDouble(),
+              addressText: json['addressText']?.toString(),
+              serviceCity: json['serviceCity']?.toString(),
+              createdAt: json['createdAt'] != null
+                  ? DateTime.tryParse(json['createdAt'].toString()) ??
                         DateTime.now()
-                    : DateTime.now(),
-                updatedAt: json['updatedAt'] != null
-                    ? DateTime.tryParse(json['updatedAt'].toString())
-                    : null,
-              ))
+                  : DateTime.now(),
+              updatedAt: json['updatedAt'] != null
+                  ? DateTime.tryParse(json['updatedAt'].toString())
+                  : null,
+            ),
+          )
           .toList();
 
       if (requests.isEmpty) {
@@ -621,9 +619,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
             ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => RequestedServiceTechniciansPage(
-                      requestId: request.id,
-                    ),
+                    builder: (_) =>
+                        RequestedServiceTechniciansPage(requestId: request.id),
                   ),
                 );
               }
@@ -633,51 +630,52 @@ class _ClientHomePageState extends State<ClientHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                if (canOpenTechnicians) ...[
-                  const Spacer(),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textSecondary,
-                  ),
+                  if (canOpenTechnicians) ...[
+                    const Spacer(),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
                 ],
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              request.problema,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
               ),
-            ),
-            if (request.addressText != null && request.addressText!.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                request.addressText!,
-                style: const TextStyle(color: AppColors.textSecondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                request.problema,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
-            ],
+              if (request.addressText != null &&
+                  request.addressText!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  request.addressText!,
+                  style: const TextStyle(color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),
@@ -712,10 +710,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
           child: SizedBox(
             height: 210,
             child: FlutterMap(
-              options: MapOptions(
-                initialCenter: currentPoint,
-                initialZoom: 15,
-              ),
+              options: MapOptions(initialCenter: currentPoint, initialZoom: 15),
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',

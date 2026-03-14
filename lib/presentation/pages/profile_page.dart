@@ -59,7 +59,8 @@ class ProfilePage extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) ...[
+                if (user.phoneNumber != null &&
+                    user.phoneNumber!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     user.phoneNumber!,
@@ -251,11 +252,7 @@ class _MenuItem extends StatelessWidget {
               ),
             ),
             if (showChevron)
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.grey,
-                size: 20,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.grey, size: 20),
           ],
         ),
       ),
