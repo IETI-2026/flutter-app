@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -32,6 +33,7 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      onTap: () => SystemChannels.textInput.invokeMethod('TextInput.show'),
       style: GoogleFonts.poppins(
         fontSize: 15,
         color: AppColors.textPrimary,

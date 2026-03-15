@@ -1,5 +1,102 @@
 package com.example.flutter_app
 
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity()
+class MainActivity : FlutterActivity() {
+    private val methodChannelName = "com.cameyo.app/speech"
+    private val eventChannelName = "com.cameyo.app/speech_events"
+
+    private var recognizer: SpeechRecognizer? = null
+    private var eventSink: EventChannel.EventSink? = null
+
+    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
+        super.configureFlutterEngine(flutterEngine)
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, eventChannelName)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, sink: EventChannel.EventSink?) {
+                    eventSink = sink
+                }
+                override fun onCancel(arguments: Any?) {
+                    eventSink = null
+                }
+            })
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, methodChannelName)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        startRecognizer()
+                        result.success(null)
+                    }
+                    "stop" -> {
+                        recognizer?.stopListening()
+                        result.success(null)
+                    }
+                    "cancel" -> {
+                        recognizer?.cancel()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun startRecognizer() {
+        recognizer?.destroy()
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        recognizer?.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                eventSink?.success(mapOf("type" to "status", "value" to "listening"))
+            }
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {
+                eventSink?.success(mapOf("type" to "status", "value" to "processing"))
+            }
+            override fun onError(error: Int) {
+                eventSink?.success(mapOf("type" to "error", "value" to error))
+            }
+            override fun onResults(results: Bundle?) {
+                val text = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull() ?: ""
+                eventSink?.success(mapOf("type" to "result", "value" to text))
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val text = partialResults
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull() ?: ""
+                if (text.isNotEmpty()) {
+                    eventSink?.success(mapOf("type" to "partial", "value" to text))
+                }
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "es-ES")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+        recognizer?.startListening(intent)
+    }
+
+    override fun onDestroy() {
+        recognizer?.destroy()
+        super.onDestroy()
+    }
+}

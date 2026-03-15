@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +28,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
   late final LocationCubit _locationCubit;
   int _selectedIndex = 0;
   int _misServicesRefreshToken = 0;
+  Future<List<ServiceRequest>>? _activeServicesFuture;
+  String? _activeServicesUserId;
 
   @override
   void initState() {
@@ -56,42 +60,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
       return;
     }
 
-    String problemaInput = '';
-    final problemaController = TextEditingController();
-    final problema = await showDialog<String>(
+    final problema = await showModalBottomSheet<String>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Describe el problema'),
-          content: TextField(
-            controller: problemaController,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.none,
-            inputFormatters: const [_LowerCaseTextFormatter()],
-            onChanged: (value) => problemaInput = value.trim(),
-            decoration: const InputDecoration(
-              hintText:
-                  'Ej: El lavamanos tiene una fuga y gotea constantemente',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(dialogContext).pop(problemaInput),
-              child: const Text('Crear solicitud'),
-            ),
-          ],
-        );
-      },
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ServiceRequestSheet(),
     );
-    problemaController.dispose();
 
-    if (problema == null || problema.isEmpty) {
-      return;
-    }
+    if (problema == null || problema.isEmpty) return;
 
     try {
       await sl<Dio>().post(
@@ -107,6 +84,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
       );
 
       if (!context.mounted) return;
+      _refreshActiveServices(userId);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Solicitud de servicio creada con exito')),
       );
@@ -384,7 +362,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Servicio actual',
+                  'Servicios activos',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -392,8 +370,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                FutureBuilder<ServiceRequest?>(
-                  future: _buildLatestServiceFuture(user.id),
+                FutureBuilder<List<ServiceRequest>>(
+                  future: _getActiveServicesFuture(user.id),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Card(
@@ -409,22 +387,31 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       );
                     }
 
-                    if (snapshot.hasData && snapshot.data != null) {
-                      final request = snapshot.data!;
-                      return _buildLatestServiceCard(context, request);
+                    final requests = snapshot.data ?? [];
+
+                    if (requests.isEmpty) {
+                      return Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text(
+                            'No tienes servicios activos en este momento.',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                        ),
+                      );
                     }
 
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text(
-                          'Aún no hay un servicio visible. Espera a que se cargue la ubicación o intenta recargar.',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
+                    return SizedBox(
+                      height: 200,
+                      child: ListView.separated(
+                        itemCount: requests.length,
+                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) =>
+                            _buildLatestServiceCard(context, requests[index]),
                       ),
                     );
                   },
@@ -440,35 +427,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 ),
                 const SizedBox(height: 12),
                 _buildCurrentLocationMap(),
-                const SizedBox(height: 24),
-                const Text(
-                  'Servicios Recientes',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.history,
-                        size: 64,
-                        color: AppColors.grey.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Aún no has solicitado servicios',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 const SizedBox(height: 100),
               ],
             ),
@@ -478,16 +436,30 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Future<ServiceRequest?> _buildLatestServiceFuture(String userId) async {
+  Future<List<ServiceRequest>> _getActiveServicesFuture(String userId) {
+    if (_activeServicesFuture == null || _activeServicesUserId != userId) {
+      _activeServicesUserId = userId;
+      _activeServicesFuture = _buildActiveServicesFuture(userId);
+    }
+    return _activeServicesFuture!;
+  }
+
+  void _refreshActiveServices(String userId) {
+    setState(() {
+      _activeServicesUserId = null;
+      _activeServicesFuture = null;
+    });
+  }
+
+  Future<List<ServiceRequest>> _buildActiveServicesFuture(String userId) async {
     var state = _locationCubit.state;
     if (state is! LocationLoaded) {
-      // Wait until location is available so tenant header is already set.
       await _locationCubit.stream.firstWhere((s) => s is LocationLoaded);
       state = _locationCubit.state;
     }
 
     final tenantId = state is LocationLoaded ? state.serviceCity : null;
-    return _fetchLatestServiceRequest(userId, tenantId: tenantId);
+    return _fetchRequestedServices(userId, tenantId: tenantId);
   }
 
   Widget _buildServiceCard(String title, IconData icon, Color color) {
@@ -528,14 +500,19 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Future<ServiceRequest?> _fetchLatestServiceRequest(
+  Future<List<ServiceRequest>> _fetchRequestedServices(
     String userId, {
     String? tenantId,
   }) async {
     try {
       final response = await sl<Dio>().get(
         '/service-requests',
-        queryParameters: {'userId': userId, 'page': 0, 'limit': 20},
+        queryParameters: {
+          'userId': userId,
+          'status': 'REQUESTED',
+          'page': 0,
+          'limit': 50,
+        },
         options: tenantId != null && tenantId.isNotEmpty
             ? Options(headers: {'X-Tenant-ID': tenantId})
             : null,
@@ -552,6 +529,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
       final requests = list
           .whereType<Map<String, dynamic>>()
+          .where((json) => json['status']?.toString().toUpperCase() == 'REQUESTED')
           .map(
             (json) => ServiceRequest(
               id: json['id']?.toString() ?? '',
@@ -580,19 +558,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
           )
           .toList();
 
-      if (requests.isEmpty) {
-        return null;
-      }
-
       requests.sort((a, b) {
         final aDate = a.updatedAt ?? a.createdAt;
         final bDate = b.updatedAt ?? b.createdAt;
         return bDate.compareTo(aDate);
       });
 
-      return requests.first;
+      return requests;
     } catch (_) {
-      return null;
+      return [];
     }
   }
 
@@ -735,6 +709,171 @@ class _ClientHomePageState extends State<ClientHomePage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ServiceRequestSheet extends StatefulWidget {
+  const _ServiceRequestSheet();
+
+  @override
+  State<_ServiceRequestSheet> createState() => _ServiceRequestSheetState();
+}
+
+class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
+  static const _method = MethodChannel('com.cameyo.app/speech');
+  static const _events = EventChannel('com.cameyo.app/speech_events');
+
+  final _controller = TextEditingController();
+  bool _isListening = false;
+  StreamSubscription<dynamic>? _sub;
+
+  Future<void> _startVoiceInput() async {
+    if (_isListening) {
+      await _method.invokeMethod('stop');
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
+
+    _sub?.cancel();
+    _sub = _events.receiveBroadcastStream().listen((event) {
+      if (!mounted) return;
+      final type = event['type'] as String;
+      final value = event['value'];
+      switch (type) {
+        case 'partial':
+          setState(() {
+            _controller.text = (value as String).toLowerCase();
+            _controller.selection = TextSelection.collapsed(
+              offset: _controller.text.length,
+            );
+          });
+        case 'result':
+          setState(() {
+            _isListening = false;
+            _controller.text = (value as String).toLowerCase();
+            _controller.selection = TextSelection.collapsed(
+              offset: _controller.text.length,
+            );
+          });
+        case 'error':
+          setState(() => _isListening = false);
+        case 'status':
+          if (value == 'listening') setState(() => _isListening = true);
+          if (value == 'processing') setState(() => _isListening = false);
+      }
+    });
+
+    try {
+      await _method.invokeMethod('start');
+    } catch (_) {
+      if (mounted) setState(() => _isListening = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    _method.invokeMethod('cancel');
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Describe el problema',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            maxLines: 4,
+            textCapitalization: TextCapitalization.none,
+            inputFormatters: const [_LowerCaseTextFormatter()],
+            autofocus: false,
+            decoration: InputDecoration(
+              hintText:
+                  'ej: el lavamanos tiene una fuga y gotea constantemente',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              suffixIcon: IconButton(
+                tooltip: _isListening ? 'Detener dictado' : 'Dictar por voz',
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: _isListening ? AppColors.primary : AppColors.grey,
+                ),
+                onPressed: _isListening ? null : _startVoiceInput,
+              ),
+            ),
+          ),
+          if (_isListening)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.circle, size: 8, color: Colors.red.shade400),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Escuchando...',
+                    style: TextStyle(fontSize: 12, color: Colors.red.shade400),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                final text = _controller.text.trim();
+                if (text.isNotEmpty) Navigator.of(context).pop(text);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Crear solicitud',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
