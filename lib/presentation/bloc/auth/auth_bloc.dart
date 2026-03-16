@@ -47,7 +47,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (authResponse) {
         AppLogger.info('Login successful');
-        emit(Authenticated(user: authResponse.user));
+        emit(Authenticated(user: authResponse.user, selectedRole: event.selectedRole));
       },
     );
   }
@@ -94,7 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (authResponse) {
         AppLogger.info('Google login successful');
-        emit(Authenticated(user: authResponse.user));
+        emit(Authenticated(user: authResponse.user, selectedRole: event.selectedRole));
       },
     );
   }
@@ -127,7 +127,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         AppLogger.info('User authenticated: ${user.email}');
-        emit(Authenticated(user: user));
+        emit(Authenticated(user: user, selectedRole: user.role.toLowerCase()));
       },
     );
   }
@@ -145,7 +145,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) {
         AppLogger.info('Current user retrieved');
-        emit(Authenticated(user: user));
+        emit(Authenticated(user: user, selectedRole: user.role.toLowerCase()));
       },
     );
   }

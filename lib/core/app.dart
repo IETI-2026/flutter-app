@@ -7,6 +7,7 @@ import 'package:flutter_app/presentation/pages/signup_page.dart';
 import 'package:flutter_app/presentation/pages/splash_screen.dart';
 import 'package:flutter_app/presentation/pages/client_home_page.dart';
 import 'package:flutter_app/presentation/pages/provider_home_page.dart';
+import 'package:flutter_app/presentation/pages/provider_onboarding_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -28,6 +29,7 @@ class CameYoApp extends StatelessWidget {
           '/signup': (context) => const SignUpPage(),
           '/client-home': (context) => const ClientHomePage(),
           '/provider-home': (context) => const ProviderHomePage(),
+          '/provider-onboarding': (context) => const ProviderOnboardingPage(),
         },
       ),
     );

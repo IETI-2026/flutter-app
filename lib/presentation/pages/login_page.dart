@@ -41,19 +41,22 @@ class _LoginPageState extends State<LoginPage>
     super.dispose();
   }
 
+  String get _selectedRole => _tabController.index == 0 ? 'client' : 'provider';
+
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
         LoginEvent(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          selectedRole: _selectedRole,
         ),
       );
     }
   }
 
   void _handleGoogleLogin() {
-    context.read<AuthBloc>().add(const LoginWithGoogleEvent());
+    context.read<AuthBloc>().add(LoginWithGoogleEvent(selectedRole: _selectedRole));
   }
 
   @override
@@ -75,10 +78,10 @@ class _LoginPageState extends State<LoginPage>
               ),
             );
           } else if (state is Authenticated) {
-            if (state.user.isClient) {
-              Navigator.pushReplacementNamed(context, '/client-home');
-            } else if (state.user.isProvider) {
+            if (state.selectedRole == 'provider') {
               Navigator.pushReplacementNamed(context, '/provider-home');
+            } else {
+              Navigator.pushReplacementNamed(context, '/client-home');
             }
           }
         },

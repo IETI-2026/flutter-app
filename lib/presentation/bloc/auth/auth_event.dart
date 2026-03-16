@@ -10,11 +10,16 @@ abstract class AuthEvent extends Equatable {
 class LoginEvent extends AuthEvent {
   final String email;
   final String password;
+  final String selectedRole;
 
-  const LoginEvent({required this.email, required this.password});
+  const LoginEvent({
+    required this.email,
+    required this.password,
+    required this.selectedRole,
+  });
 
   @override
-  List<Object?> get props => [email, password];
+  List<Object?> get props => [email, password, selectedRole];
 }
 
 class SignUpEvent extends AuthEvent {
@@ -37,7 +42,12 @@ class SignUpEvent extends AuthEvent {
 }
 
 class LoginWithGoogleEvent extends AuthEvent {
-  const LoginWithGoogleEvent();
+  final String selectedRole;
+
+  const LoginWithGoogleEvent({required this.selectedRole});
+
+  @override
+  List<Object?> get props => [selectedRole];
 }
 
 class LogoutEvent extends AuthEvent {
