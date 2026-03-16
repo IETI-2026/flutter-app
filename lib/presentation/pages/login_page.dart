@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
+import 'package:flutter_app/presentation/widgets/google_auth_button.dart';
 import 'package:flutter_app/presentation/widgets/primary_button.dart';
 import 'package:flutter_app/presentation/widgets/custom_text_field.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -488,58 +489,9 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Widget _buildGoogleButton(bool isLoading) {
-    return InkWell(
-      onTap: isLoading ? null : _handleGoogleLogin,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        width: double.infinity,
-        height: 56,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.grey.shade300, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo de Google SVG correcto
-            Image.asset(
-              'assets/icons/google_logo.png',
-              width: 24,
-              height: 24,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback si no existe la imagen
-                return Container(
-                  width: 24,
-                  height: 24,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
-                  child: const Icon(
-                    Icons.g_mobiledata,
-                    color: Color(0xFFDB4437),
-                    size: 32,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Continuar con Google',
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return GoogleAuthButton(
+      onPressed: _handleGoogleLogin,
+      isLoading: isLoading,
     );
   }
 }

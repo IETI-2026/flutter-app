@@ -42,12 +42,16 @@ class CustomTextField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.poppins(
-          color: AppColors.textHint.withOpacity(0.5),
+          color: AppColors.textHint.withValues(alpha: 0.5),
           fontSize: 14,
           fontWeight: FontWeight.w400,
         ),
         prefixIcon: prefixIcon != null
-            ? Icon(prefixIcon, color: AppColors.grey.withOpacity(0.6), size: 22)
+            ? Icon(
+                prefixIcon,
+                color: AppColors.grey.withValues(alpha: 0.6),
+                size: 22,
+              )
             : null,
         suffixIcon: suffixIcon,
         filled: true,

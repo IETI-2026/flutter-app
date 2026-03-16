@@ -246,7 +246,12 @@ Future<void> initializeDependencies() async {
   });
 
   sl.registerLazySingleton<GoogleSignIn>(
-    () => GoogleSignIn(scopes: ['email', 'profile']),
+    () => GoogleSignIn(
+      scopes: ['email', 'profile'],
+      serverClientId: AppConstants.googleServerClientId.isEmpty
+          ? null
+          : AppConstants.googleServerClientId,
+    ),
   );
 
   sl.registerLazySingleton<AuthLocalDataSource>(

@@ -31,7 +31,7 @@ class PrimaryButton extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             backgroundColor ?? AppColors.primary,
-            (backgroundColor ?? AppColors.primary).withOpacity(0.9),
+            (backgroundColor ?? AppColors.primary).withValues(alpha: 0.9),
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -40,7 +40,9 @@ class PrimaryButton extends StatelessWidget {
         boxShadow: [
           if (!isLoading && onPressed != null)
             BoxShadow(
-              color: (backgroundColor ?? AppColors.primary).withOpacity(0.4),
+              color: (backgroundColor ?? AppColors.primary).withValues(
+                alpha: 0.4,
+              ),
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),

@@ -46,11 +46,50 @@ Para más detalles, consulta [ARCHITECTURE.md](ARCHITECTURE.md).
 
 La aplicación se conecta a un backend NestJS en:
 
-```
-http://localhost:3000/api
+```text
+http://10.0.2.2:3000/api
 ```
 
-Configurar en: `lib/core/constants/app_constants.dart`
+Configurable por variables de entorno (`dart-define`) en:
+
+`lib/core/constants/app_constants.dart`
+
+## 🌐 Configuración local sin fallos (localhost)
+
+La app ahora usa estas variables de entorno en tiempo de compilación:
+
+- `API_BASE_URL`
+- `GOOGLE_SERVER_CLIENT_ID`
+
+### Archivos de ejemplo
+
+- `env/local.android.example.json`
+- `env/local.ios.example.json`
+- `env/local.device.example.json`
+
+### Cómo usarlos
+
+1. Copia el ejemplo que te corresponda y renómbralo (por ejemplo):
+
+```bash
+cp env/local.android.example.json env/local.android.json
+```
+
+1. Reemplaza `TU_WEB_CLIENT_ID.apps.googleusercontent.com` por tu Web Client ID real de Google.
+
+1. Ejecuta Flutter con ese archivo:
+
+```bash
+flutter run --dart-define-from-file=env/local.android.json
+```
+
+### URLs correctas según plataforma
+
+- Android Emulator: `http://10.0.2.2:3000/api`
+- iOS Simulator: `http://localhost:3000/api`
+- Dispositivo físico: `http://<IP_DE_TU_PC>:3000/api`
+
+> Para dispositivo físico, el celular y tu PC deben estar en la misma red Wi-Fi.
 
 ## 📝 Comandos Útiles
 
@@ -86,7 +125,7 @@ Paleta basada en el logo de CameYo:
 
 ## 📂 Estructura del Proyecto
 
-```
+```text
 lib/
 ├── core/              # Configuración y utilidades
 ├── data/              # Modelos y datasources
