@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/constants/app_constants.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'dart:math' as math;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -37,11 +39,32 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-    });
+    _resolveInitialRoute();
+  }
+
+  Future<void> _resolveInitialRoute() async {
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString(AppConstants.accessTokenKey);
+    final storedRole = prefs.getString(AppConstants.userRoleKey) ?? '';
+
+    if (!mounted) {
+      return;
+    }
+
+    if (accessToken == null || accessToken.isEmpty) {
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+
+    final normalizedRole = storedRole.toLowerCase();
+    final isProvider = normalizedRole.contains('provider');
+
+    Navigator.pushReplacementNamed(
+      context,
+      isProvider ? '/provider-home' : '/client-home',
+    );
   }
 
   @override

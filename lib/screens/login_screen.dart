@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../utils/constants.dart';
-import 'home_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -49,9 +48,10 @@ class _LoginScreenState extends State<LoginScreen>
     if (!mounted) return;
 
     if (result['success'] == true) {
-      Navigator.of(
-        context,
-      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
+      final selectedRoute = _tabController.index == 1
+          ? '/provider-home'
+          : '/client-home';
+      Navigator.pushReplacementNamed(context, selectedRoute);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

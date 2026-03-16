@@ -12,13 +12,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ── Paleta premium negro + naranja ──────────────────────────────────────────
-const _bg       = Color(0xFF0F0F0F);
-const _card     = Color(0xFF1C1C1C);
-const _cardAlt  = Color(0xFF252525);
-const _border   = Color(0xFF2E2E2E);
-const _txtPri   = Colors.white;
-const _txtSec   = Color(0xFF9E9E9E);
-const _orange   = AppColors.primary;
+const _bg = Color(0xFF0F0F0F);
+const _card = Color(0xFF1C1C1C);
+const _cardAlt = Color(0xFF252525);
+const _border = Color(0xFF2E2E2E);
+const _txtPri = Colors.white;
+const _txtSec = Color(0xFF9E9E9E);
+const _orange = AppColors.primary;
 // ─────────────────────────────────────────────────────────────────────────────
 
 class ProviderHomePage extends StatefulWidget {
@@ -99,7 +99,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     }
     if (!_hasProfile) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) Navigator.pushReplacementNamed(context, '/provider-onboarding');
+        if (mounted)
+          Navigator.pushReplacementNamed(context, '/provider-onboarding');
       });
       return const Scaffold(
         backgroundColor: _bg,
@@ -109,7 +110,20 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Scaffold(
+            backgroundColor: _bg,
+            body: Center(child: CircularProgressIndicator(color: _orange)),
+          );
+        }
+
         if (state is! Authenticated) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+          });
           return const Scaffold(
             backgroundColor: _bg,
             body: Center(child: CircularProgressIndicator(color: _orange)),
@@ -138,7 +152,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 ),
                 const SizedBox(width: 5),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: _orange,
                     borderRadius: BorderRadius.circular(5),
@@ -167,14 +184,21 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: _orange),
+                          const Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: _orange,
+                          ),
                           const SizedBox(width: 2),
                           ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 100),
                             child: Text(
                               locationState.formattedAddress,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 11, color: _txtSec),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: _txtSec,
+                              ),
                             ),
                           ),
                         ],
@@ -185,8 +209,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                     return const Padding(
                       padding: EdgeInsets.only(right: 8),
                       child: SizedBox(
-                        width: 14, height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: _orange),
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _orange,
+                        ),
                       ),
                     );
                   }
@@ -197,8 +225,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                   ? const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12),
                       child: SizedBox(
-                        width: 20, height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: _orange),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _orange,
+                        ),
                       ),
                     )
                   : Switch(
@@ -209,6 +241,16 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       inactiveTrackColor: _border,
                       inactiveThumbColor: _txtSec,
                     ),
+              IconButton(
+                icon: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: _txtPri,
+                ),
+                tooltip: 'Pagos',
+                onPressed: () {
+                  Navigator.pushNamed(context, '/provider-payments');
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, color: _txtPri),
                 onPressed: () {},
@@ -231,7 +273,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             backgroundColor: const Color(0xFF111111),
             selectedItemColor: _orange,
             unselectedItemColor: const Color(0xFF555555),
-            selectedLabelStyle: GoogleFonts.poppins(fontSize: 11, fontWeight: FontWeight.w600),
+            selectedLabelStyle: GoogleFonts.poppins(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
             unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
             items: const [
               BottomNavigationBarItem(
@@ -284,7 +329,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               children: [
                 // "Modo Profesional" badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _orange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
@@ -298,7 +346,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       Text(
                         'Modo Profesional',
                         style: GoogleFonts.poppins(
-                          fontSize: 11, color: _orange, fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          color: _orange,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -308,14 +358,17 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 Text(
                   '¡Hola, ${user.fullName.split(' ').first}! 👋',
                   style: GoogleFonts.poppins(
-                    fontSize: 24, fontWeight: FontWeight.bold, color: _txtPri,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: _txtPri,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
                     Container(
-                      width: 8, height: 8,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
                         color: _isAvailable ? AppColors.success : _txtSec,
                         shape: BoxShape.circle,
@@ -323,7 +376,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                     ),
                     const SizedBox(width: 7),
                     Text(
-                      _isAvailable ? 'Disponible para trabajar' : 'No disponible',
+                      _isAvailable
+                          ? 'Disponible para trabajar'
+                          : 'No disponible',
                       style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: _isAvailable ? AppColors.success : _txtSec,
@@ -335,11 +390,32 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(child: _buildStatCard('4.8', 'Calificación', Icons.star_rounded, AppColors.secondary)),
+                    Expanded(
+                      child: _buildStatCard(
+                        '4.8',
+                        'Calificación',
+                        Icons.star_rounded,
+                        AppColors.secondary,
+                      ),
+                    ),
                     const SizedBox(width: 10),
-                    Expanded(child: _buildStatCard('0', 'Servicios', Icons.check_circle_rounded, AppColors.success)),
+                    Expanded(
+                      child: _buildStatCard(
+                        '0',
+                        'Servicios',
+                        Icons.check_circle_rounded,
+                        AppColors.success,
+                      ),
+                    ),
                     const SizedBox(width: 10),
-                    Expanded(child: _buildStatCard('\$0', 'Ganancias', Icons.attach_money_rounded, _orange)),
+                    Expanded(
+                      child: _buildStatCard(
+                        '\$0',
+                        'Ganancias',
+                        Icons.attach_money_rounded,
+                        _orange,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -366,11 +442,16 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       Text(
                         'Solicitudes Pendientes',
                         style: GoogleFonts.poppins(
-                          fontSize: 16, fontWeight: FontWeight.bold, color: _txtPri,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: _txtPri,
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: _orange,
                           borderRadius: BorderRadius.circular(20),
@@ -378,7 +459,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                         child: Text(
                           '0',
                           style: GoogleFonts.poppins(
-                            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -388,16 +471,26 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                   Center(
                     child: Column(
                       children: [
-                        Icon(Icons.inbox_outlined, size: 48, color: _txtSec.withValues(alpha: 0.4)),
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 48,
+                          color: _txtSec.withValues(alpha: 0.4),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No hay solicitudes pendientes',
-                          style: GoogleFonts.poppins(fontSize: 13, color: _txtSec),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: _txtSec,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Recibirás notificaciones cuando haya nuevas solicitudes',
-                          style: GoogleFonts.poppins(fontSize: 11, color: _txtSec.withValues(alpha: 0.6)),
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: _txtSec.withValues(alpha: 0.6),
+                          ),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -425,18 +518,27 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                   Text(
                     'Servicios Activos',
                     style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.bold, color: _txtPri,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: _txtPri,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Center(
                     child: Column(
                       children: [
-                        Icon(Icons.work_outline, size: 48, color: _txtSec.withValues(alpha: 0.4)),
+                        Icon(
+                          Icons.work_outline,
+                          size: 48,
+                          color: _txtSec.withValues(alpha: 0.4),
+                        ),
                         const SizedBox(height: 12),
                         Text(
                           'No tienes servicios activos',
-                          style: GoogleFonts.poppins(fontSize: 13, color: _txtSec),
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            color: _txtSec,
+                          ),
                         ),
                       ],
                     ),
@@ -476,15 +578,22 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                           : null,
                       child: user.profilePhotoUrl == null
                           ? Text(
-                              user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '?',
+                              user.fullName.isNotEmpty
+                                  ? user.fullName[0].toUpperCase()
+                                  : '?',
                               style: GoogleFonts.poppins(
-                                fontSize: 34, fontWeight: FontWeight.bold, color: _orange,
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: _orange,
                               ),
                             )
                           : null,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: _orange,
                         borderRadius: BorderRadius.circular(5),
@@ -493,7 +602,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       child: Text(
                         'PRO',
                         style: GoogleFonts.poppins(
-                          color: Colors.white, fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.5,
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -502,25 +614,38 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 const SizedBox(height: 14),
                 Text(
                   user.fullName,
-                  style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: _txtPri),
+                  style: GoogleFonts.poppins(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: _txtPri,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(user.email, style: GoogleFonts.poppins(fontSize: 13, color: _txtSec)),
+                Text(
+                  user.email,
+                  style: GoogleFonts.poppins(fontSize: 13, color: _txtSec),
+                ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
-                    color: (_isAvailable ? AppColors.success : _txtSec).withValues(alpha: 0.12),
+                    color: (_isAvailable ? AppColors.success : _txtSec)
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: (_isAvailable ? AppColors.success : _txtSec).withValues(alpha: 0.35),
+                      color: (_isAvailable ? AppColors.success : _txtSec)
+                          .withValues(alpha: 0.35),
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 7, height: 7,
+                        width: 7,
+                        height: 7,
                         decoration: BoxDecoration(
                           color: _isAvailable ? AppColors.success : _txtSec,
                           shape: BoxShape.circle,
@@ -530,7 +655,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       Text(
                         _isAvailable ? 'Disponible' : 'No disponible',
                         style: GoogleFonts.poppins(
-                          fontSize: 12, fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                           color: _isAvailable ? AppColors.success : _txtSec,
                         ),
                       ),
@@ -616,7 +742,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Cerrar sesión',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: _txtPri),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _txtPri,
+          ),
         ),
         content: Text(
           '¿Estás seguro de que quieres cerrar sesión?',
@@ -631,12 +760,18 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             onPressed: () {
               Navigator.of(dialogContext).pop();
               context.read<AuthBloc>().add(const LogoutEvent());
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (_) => false,
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: Text('Cerrar sesión', style: GoogleFonts.poppins()),
           ),
@@ -665,7 +800,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   // ── STAT CARD ────────────────────────────────────────────────────────────────
 
-  Widget _buildStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
@@ -679,7 +819,11 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           const SizedBox(height: 6),
           Text(
             value,
-            style: GoogleFonts.poppins(fontSize: 17, fontWeight: FontWeight.bold, color: color),
+            style: GoogleFonts.poppins(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -726,7 +870,8 @@ class _ProMenuItem extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 38, height: 38,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: effectiveIconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
@@ -738,11 +883,14 @@ class _ProMenuItem extends StatelessWidget {
               child: Text(
                 label,
                 style: GoogleFonts.poppins(
-                  fontSize: 15, fontWeight: FontWeight.w500, color: effectiveLabelColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: effectiveLabelColor,
                 ),
               ),
             ),
-            if (showChevron) const Icon(Icons.chevron_right, color: _txtSec, size: 20),
+            if (showChevron)
+              const Icon(Icons.chevron_right, color: _txtSec, size: 20),
           ],
         ),
       ),

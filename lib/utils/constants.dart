@@ -10,6 +10,7 @@ class ApiConstants {
   static const String refreshEndpoint = '/auth/refresh';
   static const String googleAuthEndpoint = '/auth/google';
   static const String meEndpoint = '/auth/me';
+  static const String paymentsEndpoint = '/payments';
 }
 
 // Storage Keys
