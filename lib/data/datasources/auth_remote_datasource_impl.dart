@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
 import 'package:flutter_app/core/error/exceptions.dart';
 import 'package:flutter_app/core/utils/logger.dart';
@@ -14,6 +15,51 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final GoogleSignIn googleSignIn;
 
   AuthRemoteDataSourceImpl({required this.dio, required this.googleSignIn});
+
+  String _extractErrorMessage(dynamic data, String fallback) {
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is List && message.isNotEmpty) {
+        return message.join(' ');
+      }
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data;
+    }
+
+    return fallback;
+  }
+
+  bool _isConnectivityError(DioException exception) {
+    return exception.type == DioExceptionType.connectionTimeout ||
+        exception.type == DioExceptionType.sendTimeout ||
+        exception.type == DioExceptionType.receiveTimeout ||
+        exception.type == DioExceptionType.connectionError;
+  }
+
+  AuthException _mapGooglePlatformException(PlatformException exception) {
+    final message = exception.message ?? '';
+    final details = exception.details?.toString() ?? '';
+    final merged = '$message $details';
+
+    if (merged.contains('ApiException: 10')) {
+      return const AuthException(
+        'Google Sign-In no está configurado correctamente para Android (ApiException 10). Verifica packageName, SHA-1/SHA-256 y Web Client ID.',
+      );
+    }
+
+    if (exception.code == 'sign_in_canceled') {
+      return const AuthException('Inicio de sesión con Google cancelado');
+    }
+
+    return AuthException(
+      'Error de Google Sign-In: ${exception.message ?? exception.code}',
+    );
+  }
 
   @override
   Future<AuthResponse> login({
@@ -119,27 +165,32 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       AppLogger.info('Google login attempt');
 
-      final urlResponse = await dio.get('${AppConstants.authEndpoint}/google');
-
-      if (urlResponse.statusCode != 200) {
-        throw ServerException('Failed to get Google auth URL');
-      }
-
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        throw AuthException('Google sign in cancelled');
+        throw AuthException('Inicio de sesión con Google cancelado');
       }
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+      final idToken = googleAuth.idToken?.trim();
 
-      final response = await dio.get(
-        '${AppConstants.authEndpoint}/google/callback',
-        queryParameters: {'code': googleAuth.idToken},
+      if (idToken == null || idToken.isEmpty) {
+        throw AuthException(
+          'Google no devolvió un ID token válido. Revisa client IDs y SHA-1/SHA-256.',
+        );
+      }
+
+      final response = await dio.post(
+        '${AppConstants.authEndpoint}/google/mobile',
+        data: {'idToken': idToken},
+        options: Options(
+          sendTimeout: AppConstants.connectionTimeout,
+          receiveTimeout: AppConstants.receiveTimeout,
+        ),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 302) {
+      if (response.statusCode == 200) {
         AppLogger.info('Google login successful');
         return AuthResponseModel.fromJson(response.data);
       } else {
@@ -149,15 +200,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       AppLogger.error('Google login error', e);
 
       if (e.response != null) {
-        final message =
-            e.response!.data['message'] ?? 'Error en login con Google';
+        final message = _extractErrorMessage(
+          e.response?.data,
+          'Error en inicio de sesión con Google',
+        );
         throw AuthException(message);
-      } else {
+      }
+
+      if (_isConnectivityError(e)) {
         throw NetworkException('Sin conexión a internet');
       }
+
+      throw ServerException('No se pudo completar el login con Google');
+    } on PlatformException catch (e) {
+      AppLogger.error('Google platform error', e);
+      throw _mapGooglePlatformException(e);
     } catch (e) {
       AppLogger.error('Unexpected Google login error', e);
       if (e is AuthException) rethrow;
+      if (e is NetworkException) rethrow;
+      if (e is ServerException) rethrow;
       throw ServerException(e.toString());
     }
   }
