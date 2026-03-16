@@ -68,7 +68,7 @@ class _SignUpPageState extends State<SignUpPage>
   }
 
   void _handleGoogleSignUp() {
-    context.read<AuthBloc>().add(const LoginWithGoogleEvent());
+    context.read<AuthBloc>().add(LoginWithGoogleEvent(selectedRole: _selectedRole));
   }
 
   @override
