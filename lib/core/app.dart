@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
+import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/pages/login_page.dart';
 import 'package:flutter_app/presentation/pages/signup_page.dart';
 import 'package:flutter_app/presentation/pages/splash_screen.dart';
 import 'package:flutter_app/presentation/pages/client_home_page.dart';
+import 'package:flutter_app/presentation/pages/client_payments_page.dart';
 import 'package:flutter_app/presentation/pages/provider_home_page.dart';
 import 'package:flutter_app/presentation/pages/provider_onboarding_page.dart';
+import 'package:flutter_app/presentation/pages/provider_payments_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -17,7 +20,7 @@ class CameYoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => sl<AuthBloc>(),
+      create: (context) => sl<AuthBloc>()..add(const CheckAuthStatusEvent()),
       child: MaterialApp(
         title: 'CameYo - Servicios al Instante',
         debugShowCheckedModeBanner: false,
@@ -28,7 +31,9 @@ class CameYoApp extends StatelessWidget {
           '/login': (context) => const LoginPage(),
           '/signup': (context) => const SignUpPage(),
           '/client-home': (context) => const ClientHomePage(),
+          '/client-payments': (context) => const ClientPaymentsPage(),
           '/provider-home': (context) => const ProviderHomePage(),
+          '/provider-payments': (context) => const ProviderPaymentsPage(),
           '/provider-onboarding': (context) => const ProviderOnboardingPage(),
         },
       ),

@@ -128,7 +128,19 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
+        if (state is AuthLoading || state is AuthInitial) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
         if (state is! Authenticated) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) {
+              return;
+            }
+            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+          });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -152,6 +164,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
             ),
             actions: _selectedIndex == 0
                 ? [
+                    IconButton(
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      tooltip: 'Pagos',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/client-payments');
+                      },
+                    ),
                     IconButton(
                       icon: const Icon(Icons.notifications_outlined),
                       onPressed: () {},
@@ -409,7 +428,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       height: 200,
                       child: ListView.separated(
                         itemCount: requests.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 8),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
                             _buildLatestServiceCard(context, requests[index]),
                       ),
@@ -529,7 +549,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
       final requests = list
           .whereType<Map<String, dynamic>>()
-          .where((json) => json['status']?.toString().toUpperCase() == 'REQUESTED')
+          .where(
+            (json) => json['status']?.toString().toUpperCase() == 'REQUESTED',
+          )
           .map(
             (json) => ServiceRequest(
               id: json['id']?.toString() ?? '',

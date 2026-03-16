@@ -108,9 +108,10 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.credit_card_outlined,
                   label: 'Métodos de pago',
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Próximamente')),
-                    );
+                    final route = user.isProvider
+                        ? '/provider-payments'
+                        : '/client-payments';
+                    Navigator.pushNamed(context, route);
                   },
                 ),
               ],
