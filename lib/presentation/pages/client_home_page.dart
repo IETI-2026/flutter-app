@@ -431,7 +431,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
-                            _buildLatestServiceCard(context, requests[index]),
+                            _buildLatestServiceCard(context, requests[index], user.id),
                       ),
                     );
                   },
@@ -592,7 +592,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     }
   }
 
-  Widget _buildLatestServiceCard(BuildContext context, ServiceRequest request) {
+  Widget _buildLatestServiceCard(BuildContext context, ServiceRequest request, String userId) {
     final canOpenTechnicians = request.status.toUpperCase() == 'REQUESTED';
     final status = request.status.toUpperCase();
     final label = switch (status) {
@@ -616,7 +616,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) =>
-                        RequestedServiceTechniciansPage(requestId: request.id),
+                        RequestedServiceTechniciansPage(
+                          requestId: request.id,
+                          clientUserId: userId,
+                          requestLatitude: request.latitude,
+                          requestLongitude: request.longitude,
+                        ),
                   ),
                 );
               }

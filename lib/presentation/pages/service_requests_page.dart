@@ -416,6 +416,9 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
                       MaterialPageRoute(
                         builder: (_) => RequestedServiceTechniciansPage(
                           requestId: request.id,
+                          clientUserId: widget.userId,
+                          requestLatitude: request.latitude,
+                          requestLongitude: request.longitude,
                         ),
                       ),
                     );

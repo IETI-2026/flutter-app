@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
+import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
@@ -113,6 +114,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
 
   sl.registerLazySingleton<TenantService>(() => TenantService());
+  sl.registerLazySingleton<WebSocketService>(() => WebSocketService());
 
   sl.registerLazySingleton<Dio>(() {
     final dio = Dio(
