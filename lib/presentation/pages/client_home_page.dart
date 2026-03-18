@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
+import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/domain/entities/service_request.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
@@ -30,15 +31,29 @@ class _ClientHomePageState extends State<ClientHomePage> {
   int _misServicesRefreshToken = 0;
   Future<List<ServiceRequest>>? _activeServicesFuture;
   String? _activeServicesUserId;
+  bool _isDark = false;
+
+  Color get _bg => _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
+  Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
+  Color get _cardAlt => _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+  Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
+  Color get _txtSec => _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+
+  void _onThemeChanged() {
+    if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
+  }
 
   @override
   void initState() {
     super.initState();
     _locationCubit = sl<LocationCubit>()..fetchLocation();
+    _isDark = sl<ThemeService>().isDark;
+    sl<ThemeService>().addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
+    sl<ThemeService>().removeListener(_onThemeChanged);
     _locationCubit.close();
     super.dispose();
   }
@@ -149,9 +164,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
         final user = state.user;
 
         return Scaffold(
-          backgroundColor: AppColors.backgroundLight,
+          backgroundColor: _bg,
           appBar: AppBar(
-            backgroundColor: AppColors.white,
+            backgroundColor: _card,
             elevation: 0,
             title: Text(
               _selectedIndex == 3 ? 'Mi Perfil' : 'CameYo',
@@ -265,10 +280,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
           const SizedBox(height: 16),
           Text(
             '$label próximamente',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 16, color: _txtSec),
           ),
         ],
       ),
@@ -283,9 +295,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(30),
                 bottomRight: Radius.circular(30),
               ),
@@ -299,10 +311,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     Expanded(
                       child: Text(
                         '¡Hola, ${user.fullName.split(' ').first}! 👋',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: _txtPri,
                         ),
                       ),
                     ),
@@ -327,9 +339,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                                   locationState.formattedAddress,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.right,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                    color: _txtSec,
                                   ),
                                 ),
                               ),
@@ -349,18 +361,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '¿Qué servicio necesitas hoy?',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: TextStyle(fontSize: 14, color: _txtSec),
                 ),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.backgroundLight,
+                    color: _cardAlt,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const TextField(
@@ -380,12 +389,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Servicios activos',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: _txtPri,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -414,11 +423,11 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.all(16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Text(
                             'No tienes servicios activos en este momento.',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: _txtSec),
                           ),
                         ),
                       );
@@ -437,12 +446,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   },
                 ),
                 const SizedBox(height: 24),
-                const Text(
+                Text(
                   'Tu ubicación actual',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: _txtPri,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -506,10 +515,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
               const SizedBox(height: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: _txtPri,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -652,9 +661,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                   if (canOpenTechnicians) ...[
                     const Spacer(),
-                    const Icon(
+                    Icon(
                       Icons.chevron_right,
-                      color: AppColors.textSecondary,
+                      color: _txtSec,
                     ),
                   ],
                 ],
@@ -662,9 +671,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
               const SizedBox(height: 10),
               Text(
                 request.problema,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: _txtPri,
                 ),
               ),
               if (request.addressText != null &&
@@ -692,7 +701,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
           return Container(
             height: 210,
             decoration: BoxDecoration(
-              color: AppColors.white,
+              color: _card,
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Center(
@@ -832,12 +841,12 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Describe el problema',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),

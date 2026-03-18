@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
+import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
@@ -13,15 +16,7 @@ import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ── Paleta premium negro + naranja ──────────────────────────────────────────
-const _bg = Color(0xFF0F0F0F);
-const _card = Color(0xFF1C1C1C);
-const _cardAlt = Color(0xFF252525);
-const _border = Color(0xFF2E2E2E);
-const _txtPri = Colors.white;
-const _txtSec = Color(0xFF9E9E9E);
 const _orange = AppColors.primary;
-// ─────────────────────────────────────────────────────────────────────────────
 
 class ProviderHomePage extends StatefulWidget {
   const ProviderHomePage({super.key});
@@ -48,11 +43,38 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   List<String> _skills = [];
   bool _savingSkills = false;
 
+  static const _allSkills = [
+    'plomeria', 'electricidad', 'cerrajeria', 'gas', 'albanileria',
+    'carpinteria', 'refrigeracion', 'tecnologia', 'jardineria', 'pintura',
+    'limpieza', 'impermeabilizacion', 'techos', 'vidrieria', 'soldadura',
+    'mantenimiento', 'mascotas', 'mudanza', 'otro',
+  ];
+
+  final _skillSearchController = TextEditingController();
+  List<String> _filteredSkills = _allSkills;
+  bool _showSkillDropdown = false;
+
+  bool _isDark = false;
+
+  void _onThemeChanged() {
+    if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
+  }
+
+  Color get _bg => _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
+  Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
+  Color get _cardAlt => _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+  Color get _border => _isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
+  Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
+  Color get _txtSec => _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+  Color get _appBarBg => _isDark ? const Color(0xFF111111) : AppColors.white;
+
   @override
   void initState() {
     super.initState();
     _locationCubit = sl<LocationCubit>()..fetchLocation();
     _initProfile();
+    _isDark = sl<ThemeService>().isDark;
+    sl<ThemeService>().addListener(_onThemeChanged);
   }
 
   Future<void> _initProfile() async {
@@ -148,63 +170,144 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     }
   }
 
-  void _showAddSkillDialog() {
-    final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Agregar habilidad',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: _txtPri,
-          ),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: GoogleFonts.poppins(color: _txtPri, fontSize: 14),
+  List<String> _filterSkills(String query) {
+    final q = query.toLowerCase().trim();
+    return _allSkills
+        .where((s) => !_skills.contains(s) && s.contains(q))
+        .toList();
+  }
+
+  void _onSkillSearchChanged(String query) {
+    setState(() {
+      _filteredSkills = _filterSkills(query);
+      _showSkillDropdown = true;
+    });
+  }
+
+  void _selectSkill(String skill) {
+    _skillSearchController.clear();
+    setState(() {
+      _filteredSkills = _filterSkills('');
+      _showSkillDropdown = false;
+    });
+    _addSkill(skill);
+  }
+
+  Widget _buildSkillsSelector() {
+    final available = _filteredSkills.where((s) => !_skills.contains(s)).toList();
+    final showList = _showSkillDropdown && available.isNotEmpty;
+
+    return Column(
+      children: [
+        TextField(
+          controller: _skillSearchController,
+          style: GoogleFonts.poppins(fontSize: 14, color: _txtPri),
+          onChanged: _onSkillSearchChanged,
+          onTap: () {
+            setState(() {
+              _filteredSkills = _filterSkills(_skillSearchController.text);
+              _showSkillDropdown = true;
+            });
+          },
           decoration: InputDecoration(
-            hintText: 'ej: plomería, electricidad...',
-            hintStyle: GoogleFonts.poppins(color: _txtSec, fontSize: 13),
+            hintText: 'Buscar habilidad...',
+            hintStyle: GoogleFonts.poppins(fontSize: 13, color: _txtSec),
+            prefixIcon: const Icon(Icons.search, color: _orange, size: 20),
+            suffixIcon: _skillSearchController.text.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.clear, size: 18, color: _txtSec),
+                    onPressed: () {
+                      _skillSearchController.clear();
+                      setState(() {
+                        _filteredSkills = _filterSkills('');
+                        _showSkillDropdown = false;
+                      });
+                    },
+                  )
+                : Icon(Icons.keyboard_arrow_down, color: _txtSec),
             filled: true,
             fillColor: _cardAlt,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide.none,
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(
-                color: _orange.withValues(alpha: 0.6),
-              ),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _orange.withValues(alpha: 0.6), width: 1.5),
             ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
-          onSubmitted: (v) {
-            Navigator.of(dialogContext).pop();
-            _addSkill(v);
-          },
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text('Cancelar', style: GoogleFonts.poppins(color: _txtSec)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _addSkill(controller.text);
-            },
-            child: Text(
-              'Agregar',
-              style: GoogleFonts.poppins(
-                color: _orange,
-                fontWeight: FontWeight.w600,
+        if (showList)
+          Container(
+            constraints: BoxConstraints(maxHeight: min(available.length * 48.0, 200)),
+            decoration: BoxDecoration(
+              color: _cardAlt,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(12),
+                bottomRight: Radius.circular(12),
               ),
+              border: Border.all(color: _border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              itemCount: available.length,
+              itemBuilder: (context, i) {
+                final skill = available[i];
+                final query = _skillSearchController.text.toLowerCase();
+                return InkWell(
+                  onTap: () => _selectSkill(skill),
+                  splashColor: _orange.withValues(alpha: 0.08),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: i < available.length - 1
+                          ? Border(bottom: BorderSide(color: _border, width: 0.5))
+                          : null,
+                    ),
+                    alignment: Alignment.centerLeft,
+                    child: _buildHighlightedSkill(skill, query),
+                  ),
+                );
+              },
             ),
           ),
+      ],
+    );
+  }
+
+  Widget _buildHighlightedSkill(String skill, String query) {
+    if (query.isEmpty) {
+      return Text(skill, style: GoogleFonts.poppins(fontSize: 14, color: _txtPri));
+    }
+    final idx = skill.indexOf(query);
+    if (idx == -1) {
+      return Text(skill, style: GoogleFonts.poppins(fontSize: 14, color: _txtSec));
+    }
+    return RichText(
+      text: TextSpan(
+        style: GoogleFonts.poppins(fontSize: 14, color: _txtSec),
+        children: [
+          if (idx > 0) TextSpan(text: skill.substring(0, idx)),
+          TextSpan(
+            text: skill.substring(idx, idx + query.length),
+            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: _orange),
+          ),
+          if (idx + query.length < skill.length)
+            TextSpan(text: skill.substring(idx + query.length)),
         ],
       ),
     );
@@ -333,7 +436,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   @override
   void dispose() {
+    sl<ThemeService>().removeListener(_onThemeChanged);
     _locationCubit.close();
+    _skillSearchController.dispose();
     if (_wsInitialized) {
       sl<WebSocketService>().offNewServiceRequest();
     }
@@ -343,7 +448,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   @override
   Widget build(BuildContext context) {
     if (!_profileChecked) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _bg,
         body: Center(child: CircularProgressIndicator(color: _orange)),
       );
@@ -354,7 +459,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           Navigator.pushReplacementNamed(context, '/provider-onboarding');
         }
       });
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: _bg,
         body: Center(child: CircularProgressIndicator(color: _orange)),
       );
@@ -363,7 +468,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthLoading || state is AuthInitial) {
-          return const Scaffold(
+          return Scaffold(
             backgroundColor: _bg,
             body: Center(child: CircularProgressIndicator(color: _orange)),
           );
@@ -376,7 +481,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             }
             Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
           });
-          return const Scaffold(
+          return Scaffold(
             backgroundColor: _bg,
             body: Center(child: CircularProgressIndicator(color: _orange)),
           );
@@ -392,7 +497,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         return Scaffold(
           backgroundColor: _bg,
           appBar: AppBar(
-            backgroundColor: const Color(0xFF111111),
+            backgroundColor: _appBarBg,
             elevation: 0,
             centerTitle: false,
             titleSpacing: 16,
@@ -431,7 +536,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 ),
               ],
             ),
-            iconTheme: const IconThemeData(color: _txtPri),
+            iconTheme: IconThemeData(color: _txtPri),
             actions: [
               _togglingAvailability
                   ? const Padding(
@@ -454,7 +559,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       inactiveThumbColor: _txtSec,
                     ),
               IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.account_balance_wallet_outlined,
                   color: _txtPri,
                 ),
@@ -481,7 +586,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               if (i == 1) _loadAvailableRequests(user.id);
             },
             type: BottomNavigationBarType.fixed,
-            backgroundColor: const Color(0xFF111111),
+            backgroundColor: _appBarBg,
             selectedItemColor: _orange,
             unselectedItemColor: const Color(0xFF555555),
             selectedLabelStyle: GoogleFonts.poppins(
@@ -528,9 +633,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: _card,
-              borderRadius: BorderRadius.only(
+              borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(28),
                 bottomRight: Radius.circular(28),
               ),
@@ -604,7 +709,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                           Stack(
                             clipBehavior: Clip.none,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.notifications_outlined,
                                 color: _txtPri,
                                 size: 24,
@@ -1064,129 +1169,88 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           // Sección 1
           Container(
             color: _card,
-            child: _ProMenuItem(
-              icon: Icons.check_circle_outline,
-              label: 'Servicios',
-              onTap: () => _showComingSoon(context),
+            child: Column(
+              children: [
+                _ProMenuItem(
+                  icon: Icons.dark_mode_outlined,
+                  label: _isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
+                  showChevron: false,
+                  onTap: () => sl<ThemeService>().toggle(),
+                ),
+                const _ProDivider(),
+                _ProMenuItem(
+                  icon: Icons.check_circle_outline,
+                  label: 'Servicios',
+                  onTap: () => _showComingSoon(context),
+                ),
+              ],
             ),
           ),
 
           const SizedBox(height: 12),
 
           // Habilidades
-          Container(
-            color: _card,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Habilidades',
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: _txtPri,
-                      ),
-                    ),
-                    if (_savingSkills)
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: _orange,
-                        ),
-                      )
-                    else
-                      GestureDetector(
-                        onTap: _showAddSkillDialog,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _orange.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: _orange.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.add, size: 13, color: _orange),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Agregar',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 11,
-                                  color: _orange,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+          GestureDetector(
+            onTap: () => setState(() => _showSkillDropdown = false),
+            behavior: HitTestBehavior.translucent,
+            child: Container(
+              color: _card,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Habilidades',
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: _txtPri,
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                if (_skills.isEmpty)
-                  Text(
-                    'Aún no tienes habilidades registradas',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: _txtSec,
-                    ),
-                  )
-                else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _skills
-                        .map(
-                          (s) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _cardAlt,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: _orange.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  s,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: _txtPri,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                GestureDetector(
-                                  onTap: () => _removeSkill(s),
-                                  child: const Icon(
-                                    Icons.close,
-                                    size: 13,
-                                    color: _txtSec,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      if (_savingSkills)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _orange,
                           ),
-                        )
-                        .toList(),
+                        ),
+                    ],
                   ),
-              ],
+                  const SizedBox(height: 14),
+                  _buildSkillsSelector(),
+                  if (_skills.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _skills
+                          .map(
+                            (s) => Chip(
+                              label: Text(
+                                s,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: _orange,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              backgroundColor: _orange.withValues(alpha: 0.12),
+                              side: BorderSide(color: _orange.withValues(alpha: 0.35)),
+                              deleteIconColor: _orange,
+                              onDeleted: () => _removeSkill(s),
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
 
@@ -1251,22 +1315,30 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Cerrar sesión',
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.bold,
-            color: _txtPri,
-          ),
+        titlePadding: const EdgeInsets.fromLTRB(24, 16, 8, 0),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Cerrar sesión',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                color: _txtPri,
+              ),
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              icon: Icon(Icons.close, color: _txtSec),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ),
         content: Text(
           '¿Estás seguro de que quieres cerrar sesión?',
           style: GoogleFonts.poppins(color: _txtSec),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text('Cancelar', style: GoogleFonts.poppins(color: _txtSec)),
-          ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
@@ -1416,7 +1488,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.location_on_outlined,
                       size: 13,
                       color: _txtSec,
@@ -1552,11 +1624,17 @@ class _NotificationsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final panelBg = isDark ? const Color(0xFF1C1C1C) : AppColors.white;
+    final itemBg = isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+    final borderColor = isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
+    final txtPri = isDark ? Colors.white : AppColors.textPrimary;
+    final txtSec = isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
     final filtered = _filtered;
     return Container(
-      decoration: const BoxDecoration(
-        color: _card,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: panelBg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -1565,7 +1643,7 @@ class _NotificationsPanel extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: _border,
+              color: borderColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1585,7 +1663,7 @@ class _NotificationsPanel extends StatelessWidget {
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: _txtPri,
+                    color: txtPri,
                   ),
                 ),
                 const Spacer(),
@@ -1620,12 +1698,12 @@ class _NotificationsPanel extends StatelessWidget {
                     Icon(
                       Icons.inbox_outlined,
                       size: 48,
-                      color: _txtSec.withValues(alpha: 0.4),
+                      color: txtSec.withValues(alpha: 0.4),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'No hay solicitudes nuevas',
-                      style: GoogleFonts.poppins(fontSize: 14, color: _txtSec),
+                      style: GoogleFonts.poppins(fontSize: 14, color: txtSec),
                     ),
                   ],
                 ),
@@ -1637,7 +1715,7 @@ class _NotificationsPanel extends StatelessWidget {
                 controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 itemCount: filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final r = filtered[index];
                   final requestId = r['id']?.toString() ?? '';
@@ -1652,9 +1730,9 @@ class _NotificationsPanel extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: _cardAlt,
+                      color: itemBg,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: _border),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1685,7 +1763,7 @@ class _NotificationsPanel extends StatelessWidget {
                                     style: GoogleFonts.poppins(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: _txtPri,
+                                      color: txtPri,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -1694,10 +1772,10 @@ class _NotificationsPanel extends StatelessWidget {
                                     const SizedBox(height: 3),
                                     Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.location_on_outlined,
                                           size: 12,
-                                          color: _txtSec,
+                                          color: txtSec,
                                         ),
                                         const SizedBox(width: 3),
                                         Expanded(
@@ -1705,7 +1783,7 @@ class _NotificationsPanel extends StatelessWidget {
                                             address,
                                             style: GoogleFonts.poppins(
                                               fontSize: 11,
-                                              color: _txtSec,
+                                              color: txtSec,
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -1759,8 +1837,8 @@ class _NotificationsPanel extends StatelessWidget {
                               child: OutlinedButton(
                                 onPressed: () => onDismiss(requestId),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: _txtSec,
-                                  side: const BorderSide(color: _border),
+                                  foregroundColor: txtSec,
+                                  side: BorderSide(color: borderColor),
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
@@ -1833,8 +1911,12 @@ class _ProMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveIconColor = iconColor ?? _orange;
-    final effectiveLabelColor = labelColor ?? _txtPri;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final defaultIconColor = iconColor ?? _orange;
+    final defaultLabelColor = labelColor ?? (isDark ? Colors.white : AppColors.textPrimary);
+    final chevronColor = isDark ? const Color(0xFF9E9E9E) : AppColors.grey;
+    final effectiveIconColor = defaultIconColor;
+    final effectiveLabelColor = defaultLabelColor;
 
     return InkWell(
       onTap: onTap,
@@ -1865,7 +1947,7 @@ class _ProMenuItem extends StatelessWidget {
               ),
             ),
             if (showChevron)
-              const Icon(Icons.chevron_right, color: _txtSec, size: 20),
+              Icon(Icons.chevron_right, color: chevronColor, size: 20),
           ],
         ),
       ),
@@ -1878,9 +1960,11 @@ class _ProDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 72),
-      child: Divider(height: 1, color: _border),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
+    return Padding(
+      padding: const EdgeInsets.only(left: 72),
+      child: Divider(height: 1, color: dividerColor),
     );
   }
 }
