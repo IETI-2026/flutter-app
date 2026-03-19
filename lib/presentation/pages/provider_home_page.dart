@@ -13,6 +13,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
+import 'package:flutter_app/presentation/pages/terms_and_conditions_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -1264,7 +1265,14 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 _ProMenuItem(
                   icon: Icons.article_outlined,
                   label: 'Términos y condiciones',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsAndConditionsPage(),
+                      ),
+                    );
+                  },
                 ),
                 const _ProDivider(),
                 _ProMenuItem(
