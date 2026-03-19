@@ -7,8 +7,8 @@ import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
+import 'package:flutter_app/presentation/pages/more_information_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
-import 'package:flutter_app/presentation/pages/terms_and_conditions_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -261,14 +261,14 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               children: [
                 _MenuItem(
-                  icon: Icons.article_outlined,
-                  label: 'Términos y condiciones',
+                  icon: Icons.info_outline,
+                  label: 'Más información',
                   isDark: _isDark,
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const TermsAndConditionsPage(),
+                        builder: (_) => const MoreInformationPage(),
                       ),
                     );
                   },
