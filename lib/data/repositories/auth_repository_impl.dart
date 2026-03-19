@@ -165,6 +165,25 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, User>> uploadProfilePhoto(String filePath) async {
+    try {
+      final user = await remoteDataSource.uploadProfilePhoto(filePath);
+      await localDataSource.saveUserData(user);
+      return Right(user);
+    } on ValidationException catch (e) {
+      return Left(ValidationFailure(e.message));
+    } on AuthException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on NetworkException catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on ServerException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<bool> isLoggedIn() async {
     final token = await localDataSource.getAccessToken();
     return token != null && token.isNotEmpty;

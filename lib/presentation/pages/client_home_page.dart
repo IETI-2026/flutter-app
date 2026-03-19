@@ -172,7 +172,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               _selectedIndex == 3 ? 'Mi Perfil' : 'CameYo',
               style: TextStyle(
                 color: _selectedIndex == 3
-                    ? AppColors.textPrimary
+                    ? _txtPri
                     : AppColors.primary,
                 fontWeight: FontWeight.bold,
               ),

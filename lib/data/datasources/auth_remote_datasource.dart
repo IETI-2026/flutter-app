@@ -19,4 +19,6 @@ abstract class AuthRemoteDataSource {
   Future<User> getCurrentUser();
 
   Future<void> logout();
+
+  Future<User> uploadProfilePhoto(String filePath);
 }

@@ -319,4 +319,54 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       AppLogger.error('Unexpected logout error', e);
     }
   }
+
+  @override
+  Future<User> uploadProfilePhoto(String filePath) async {
+    try {
+      AppLogger.info('Uploading profile photo');
+
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath),
+      });
+
+      final response = await dio.patch(
+        '${AppConstants.usersEndpoint}/me/profile-photo',
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        AppLogger.info('Profile photo uploaded successfully');
+        return UserModel.fromJson(response.data);
+      } else {
+        throw ServerException(
+          'Upload failed: ${response.statusMessage}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.error('Upload profile photo error', e);
+
+      if (e.response != null) {
+        final statusCode = e.response!.statusCode;
+        final message =
+            e.response!.data['message'] ?? 'Error al subir la imagen';
+
+        if (statusCode == 400) {
+          throw ValidationException(message is List ? message.join(' ') : message.toString());
+        } else if (statusCode == 401) {
+          throw AuthException(message.toString());
+        } else {
+          throw ServerException(message.toString());
+        }
+      } else {
+        throw NetworkException('Sin conexión a internet');
+      }
+    } catch (e) {
+      AppLogger.error('Unexpected upload error', e);
+      if (e is ValidationException) rethrow;
+      if (e is AuthException) rethrow;
+      if (e is NetworkException) rethrow;
+      if (e is ServerException) rethrow;
+      throw ServerException(e.toString());
+    }
+  }
 }
