@@ -88,7 +88,9 @@ class _SignUpPageState extends State<SignUpPage>
       return;
     }
 
-    context.read<AuthBloc>().add(LoginWithGoogleEvent(selectedRole: _selectedRole));
+    context.read<AuthBloc>().add(
+      LoginWithGoogleEvent(selectedRole: _selectedRole),
+    );
   }
 
   void _showTermsRequiredMessage() {
@@ -99,9 +101,7 @@ class _SignUpPageState extends State<SignUpPage>
         ),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }

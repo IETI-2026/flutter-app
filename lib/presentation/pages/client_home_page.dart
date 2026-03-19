@@ -41,11 +41,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
     'Mi Perfil',
   ];
 
-  Color get _bg => _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
+  Color get _bg =>
+      _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
   Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
-  Color get _cardAlt => _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+  Color get _cardAlt =>
+      _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
   Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
-  Color get _txtSec => _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+  Color get _txtSec =>
+      _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
 
   void _onThemeChanged() {
     if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
@@ -179,9 +182,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
             title: Text(
               _tabTitles[_selectedIndex],
               style: TextStyle(
-                color: _selectedIndex == 4
-                    ? _txtPri
-                    : AppColors.primary,
+                color: _selectedIndex == 4 ? _txtPri : AppColors.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -556,7 +557,11 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
-                            _buildLatestServiceCard(context, requests[index], user.id),
+                            _buildLatestServiceCard(
+                              context,
+                              requests[index],
+                              user.id,
+                            ),
                       ),
                     );
                   },
@@ -717,7 +722,11 @@ class _ClientHomePageState extends State<ClientHomePage> {
     }
   }
 
-  Widget _buildLatestServiceCard(BuildContext context, ServiceRequest request, String userId) {
+  Widget _buildLatestServiceCard(
+    BuildContext context,
+    ServiceRequest request,
+    String userId,
+  ) {
     final canOpenTechnicians = request.status.toUpperCase() == 'REQUESTED';
     final status = request.status.toUpperCase();
     final label = switch (status) {
@@ -740,13 +749,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
             ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        RequestedServiceTechniciansPage(
-                          requestId: request.id,
-                          clientUserId: userId,
-                          requestLatitude: request.latitude,
-                          requestLongitude: request.longitude,
-                        ),
+                    builder: (_) => RequestedServiceTechniciansPage(
+                      requestId: request.id,
+                      clientUserId: userId,
+                      requestLatitude: request.latitude,
+                      requestLongitude: request.longitude,
+                    ),
                   ),
                 );
               }
@@ -777,20 +785,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                   if (canOpenTechnicians) ...[
                     const Spacer(),
-                    Icon(
-                      Icons.chevron_right,
-                      color: _txtSec,
-                    ),
+                    Icon(Icons.chevron_right, color: _txtSec),
                   ],
                 ],
               ),
               const SizedBox(height: 10),
               Text(
                 request.problema,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: _txtPri,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, color: _txtPri),
               ),
               if (request.addressText != null &&
                   request.addressText!.isNotEmpty) ...[
