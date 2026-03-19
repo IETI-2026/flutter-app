@@ -13,6 +13,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
+import 'package:flutter_app/presentation/pages/more_information_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -44,10 +45,25 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   bool _savingSkills = false;
 
   static const _allSkills = [
-    'plomeria', 'electricidad', 'cerrajeria', 'gas', 'albanileria',
-    'carpinteria', 'refrigeracion', 'tecnologia', 'jardineria', 'pintura',
-    'limpieza', 'impermeabilizacion', 'techos', 'vidrieria', 'soldadura',
-    'mantenimiento', 'mascotas', 'mudanza', 'otro',
+    'plomeria',
+    'electricidad',
+    'cerrajeria',
+    'gas',
+    'albanileria',
+    'carpinteria',
+    'refrigeracion',
+    'tecnologia',
+    'jardineria',
+    'pintura',
+    'limpieza',
+    'impermeabilizacion',
+    'techos',
+    'vidrieria',
+    'soldadura',
+    'mantenimiento',
+    'mascotas',
+    'mudanza',
+    'otro',
   ];
 
   final _skillSearchController = TextEditingController();
@@ -60,12 +76,15 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
   }
 
-  Color get _bg => _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
+  Color get _bg =>
+      _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
   Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
-  Color get _cardAlt => _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+  Color get _cardAlt =>
+      _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
   Color get _border => _isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
   Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
-  Color get _txtSec => _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+  Color get _txtSec =>
+      _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
   Color get _appBarBg => _isDark ? const Color(0xFF111111) : AppColors.white;
 
   @override
@@ -111,7 +130,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
     wsService.onNewServiceRequest((data) {
       if (!mounted) return;
-      final requestedSkills = (data['requestedSkills'] as List?)
+      final requestedSkills =
+          (data['requestedSkills'] as List?)
               ?.map((s) => s.toString().toLowerCase())
               .toSet() ??
           {};
@@ -194,7 +214,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   }
 
   Widget _buildSkillsSelector() {
-    final available = _filteredSkills.where((s) => !_skills.contains(s)).toList();
+    final available = _filteredSkills
+        .where((s) => !_skills.contains(s))
+        .toList();
     final showList = _showSkillDropdown && available.isNotEmpty;
 
     return Column(
@@ -237,14 +259,22 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: _orange.withValues(alpha: 0.6), width: 1.5),
+              borderSide: BorderSide(
+                color: _orange.withValues(alpha: 0.6),
+                width: 1.5,
+              ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
           ),
         ),
         if (showList)
           Container(
-            constraints: BoxConstraints(maxHeight: min(available.length * 48.0, 200)),
+            constraints: BoxConstraints(
+              maxHeight: min(available.length * 48.0, 200),
+            ),
             decoration: BoxDecoration(
               color: _cardAlt,
               borderRadius: const BorderRadius.only(
@@ -275,7 +305,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(
                       border: i < available.length - 1
-                          ? Border(bottom: BorderSide(color: _border, width: 0.5))
+                          ? Border(
+                              bottom: BorderSide(color: _border, width: 0.5),
+                            )
                           : null,
                     ),
                     alignment: Alignment.centerLeft,
@@ -291,11 +323,17 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   Widget _buildHighlightedSkill(String skill, String query) {
     if (query.isEmpty) {
-      return Text(skill, style: GoogleFonts.poppins(fontSize: 14, color: _txtPri));
+      return Text(
+        skill,
+        style: GoogleFonts.poppins(fontSize: 14, color: _txtPri),
+      );
     }
     final idx = skill.indexOf(query);
     if (idx == -1) {
-      return Text(skill, style: GoogleFonts.poppins(fontSize: 14, color: _txtSec));
+      return Text(
+        skill,
+        style: GoogleFonts.poppins(fontSize: 14, color: _txtSec),
+      );
     }
     return RichText(
       text: TextSpan(
@@ -304,7 +342,11 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           if (idx > 0) TextSpan(text: skill.substring(0, idx)),
           TextSpan(
             text: skill.substring(idx, idx + query.length),
-            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.bold, color: _orange),
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: _orange,
+            ),
           ),
           if (idx + query.length < skill.length)
             TextSpan(text: skill.substring(idx + query.length)),
@@ -351,10 +393,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     }
   }
 
-  Future<void> _acceptRequest(
-    String requestId,
-    String technicianId,
-  ) async {
+  Future<void> _acceptRequest(String requestId, String technicianId) async {
     try {
       await sl<Dio>().patch(
         '/service-requests/$requestId/accept',
@@ -369,10 +408,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Solicitud aceptada',
-              style: GoogleFonts.poppins(),
-            ),
+            content: Text('Solicitud aceptada', style: GoogleFonts.poppins()),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -424,9 +460,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           },
           onDismiss: (requestId) {
             setState(() {
-              _newRequests.removeWhere(
-                (r) => r['id']?.toString() == requestId,
-              );
+              _newRequests.removeWhere((r) => r['id']?.toString() == requestId);
             });
           },
         ),
@@ -655,8 +689,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       decoration: BoxDecoration(
                         color: _orange.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
-                        border:
-                            Border.all(color: _orange.withValues(alpha: 0.35)),
+                        border: Border.all(
+                          color: _orange.withValues(alpha: 0.35),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -676,8 +711,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                     ),
                     // Notification bell with optional pop-up label
                     GestureDetector(
-                      onTap: () =>
-                          _showNotificationsPanel(context, user.id),
+                      onTap: () => _showNotificationsPanel(context, user.id),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -924,9 +958,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                         itemCount: _newRequests.length,
                         itemBuilder: (context, index) =>
                             _buildRequestPreviewCard(
-                          _newRequests[index],
-                          user.id,
-                        ),
+                              _newRequests[index],
+                              user.id,
+                            ),
                       ),
                     ),
                 ],
@@ -989,7 +1023,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   Widget _buildRequestPreviewCard(Map<String, dynamic> request, String userId) {
     final problema = request['problema']?.toString() ?? 'Sin descripción';
-    final skills = (request['requestedSkills'] as List?)
+    final skills =
+        (request['requestedSkills'] as List?)
             ?.map((s) => s.toString())
             .take(2)
             .join(', ') ??
@@ -1173,7 +1208,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               children: [
                 _ProMenuItem(
                   icon: Icons.dark_mode_outlined,
-                  label: _isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
+                  label: _isDark
+                      ? 'Cambiar a modo claro'
+                      : 'Cambiar a modo oscuro',
                   showChevron: false,
                   onTap: () => sl<ThemeService>().toggle(),
                 ),
@@ -1240,10 +1277,13 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                                 ),
                               ),
                               backgroundColor: _orange.withValues(alpha: 0.12),
-                              side: BorderSide(color: _orange.withValues(alpha: 0.35)),
+                              side: BorderSide(
+                                color: _orange.withValues(alpha: 0.35),
+                              ),
                               deleteIconColor: _orange,
                               onDeleted: () => _removeSkill(s),
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
                             ),
                           )
                           .toList(),
@@ -1262,9 +1302,16 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             child: Column(
               children: [
                 _ProMenuItem(
-                  icon: Icons.article_outlined,
-                  label: 'Términos y condiciones',
-                  onTap: () => _showComingSoon(context),
+                  icon: Icons.info_outline,
+                  label: 'Más información',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const MoreInformationPage(),
+                      ),
+                    );
+                  },
                 ),
                 const _ProDivider(),
                 _ProMenuItem(
@@ -1367,9 +1414,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   Widget _buildSolicitudesTab(User user) {
     if (_loadingAvailable) {
-      return const Center(
-        child: CircularProgressIndicator(color: _orange),
-      );
+      return const Center(child: CircularProgressIndicator(color: _orange));
     }
     if (_availableRequests.isEmpty) {
       return Center(
@@ -1396,7 +1441,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
       itemBuilder: (context, index) {
         final r = _availableRequests[index];
         final problema = r['problema']?.toString() ?? 'Sin descripción';
-        final skills = (r['requestedSkills'] as List?)
+        final skills =
+            (r['requestedSkills'] as List?)
                 ?.map((s) => s.toString())
                 .toList() ??
             [];
@@ -1488,11 +1534,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(
-                      Icons.location_on_outlined,
-                      size: 13,
-                      color: _txtSec,
-                    ),
+                    Icon(Icons.location_on_outlined, size: 13, color: _txtSec),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
@@ -1614,7 +1656,8 @@ class _NotificationsPanel extends StatelessWidget {
     if (skills.isEmpty) return requests;
     final mySkills = skills.map((s) => s.toLowerCase()).toSet();
     return requests.where((r) {
-      final rs = (r['requestedSkills'] as List?)
+      final rs =
+          (r['requestedSkills'] as List?)
               ?.map((s) => s.toString().toLowerCase())
               .toSet() ??
           {};
@@ -1721,7 +1764,8 @@ class _NotificationsPanel extends StatelessWidget {
                   final requestId = r['id']?.toString() ?? '';
                   final problema =
                       r['problema']?.toString() ?? 'Sin descripción';
-                  final skills = (r['requestedSkills'] as List?)
+                  final skills =
+                      (r['requestedSkills'] as List?)
                           ?.map((s) => s.toString())
                           .toList() ??
                       [];
@@ -1839,8 +1883,9 @@ class _NotificationsPanel extends StatelessWidget {
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: txtSec,
                                   side: BorderSide(color: borderColor),
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1861,8 +1906,9 @@ class _NotificationsPanel extends StatelessWidget {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: _orange,
                                   foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
@@ -1913,7 +1959,8 @@ class _ProMenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final defaultIconColor = iconColor ?? _orange;
-    final defaultLabelColor = labelColor ?? (isDark ? Colors.white : AppColors.textPrimary);
+    final defaultLabelColor =
+        labelColor ?? (isDark ? Colors.white : AppColors.textPrimary);
     final chevronColor = isDark ? const Color(0xFF9E9E9E) : AppColors.grey;
     final effectiveIconColor = defaultIconColor;
     final effectiveLabelColor = defaultLabelColor;

@@ -18,6 +18,15 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phoneController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _acceptedTerms = false;
+
+  static const List<String> _termsItems = [
+    'Aceptas los términos y condiciones de uso de CameYo para crear una cuenta.',
+    'Autorizas el tratamiento de datos personales de acuerdo con la Ley 1581 de 2012 y el Decreto 1377 de 2013.',
+    'Tus datos se usan para gestionar registro, autenticación, solicitudes de servicio y soporte de la plataforma.',
+    'Puedes ejercer derechos de acceso, actualización, rectificación y supresión de datos cuando aplique.',
+    'Para continuar con el registro debes otorgar aceptación expresa de estos términos.',
+  ];
 
   @override
   void dispose() {
@@ -29,6 +38,11 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _handleSignup() async {
+    if (!_acceptedTerms) {
+      _showTermsRequiredMessage();
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -63,6 +77,51 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       );
     }
+  }
+
+  void _showTermsRequiredMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Debes aceptar los términos y condiciones para continuar.',
+        ),
+        backgroundColor: AppColors.error,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Términos y condiciones'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _termsItems
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text('• $item'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -245,6 +304,69 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 32),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade50,
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Checkbox(
+                        value: _acceptedTerms,
+                        activeColor: AppColors.primary,
+                        onChanged: (value) {
+                          setState(() {
+                            _acceptedTerms = value ?? false;
+                          });
+                        },
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Wrap(
+                            children: [
+                              Text(
+                                'Acepto los ',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: _showTermsDialog,
+                                child: Text(
+                                  'términos y condiciones',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                ' para completar el registro.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 // Botón de registro
                 ElevatedButton(

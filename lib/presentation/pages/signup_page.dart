@@ -28,7 +28,16 @@ class _SignUpPageState extends State<SignUpPage>
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _acceptedTerms = false;
   String _selectedRole = 'client';
+
+  static const List<String> _termsItems = [
+    'Aceptas los términos y condiciones de uso de CameYo para crear una cuenta.',
+    'Autorizas el tratamiento de datos personales de acuerdo con la Ley 1581 de 2012 y el Decreto 1377 de 2013.',
+    'Tus datos se usan para gestionar registro, autenticación, solicitudes de servicio y soporte de la plataforma.',
+    'Puedes ejercer derechos de acceso, actualización, rectificación y supresión de datos cuando aplique.',
+    'Para continuar con el registro debes otorgar aceptación expresa de estos términos.',
+  ];
 
   @override
   void initState() {
@@ -53,6 +62,11 @@ class _SignUpPageState extends State<SignUpPage>
   }
 
   void _handleSignUp() {
+    if (!_acceptedTerms) {
+      _showTermsRequiredMessage();
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(
         SignUpEvent(
@@ -69,7 +83,60 @@ class _SignUpPageState extends State<SignUpPage>
   }
 
   void _handleGoogleSignUp() {
-    context.read<AuthBloc>().add(LoginWithGoogleEvent(selectedRole: _selectedRole));
+    if (!_acceptedTerms) {
+      _showTermsRequiredMessage();
+      return;
+    }
+
+    context.read<AuthBloc>().add(
+      LoginWithGoogleEvent(selectedRole: _selectedRole),
+    );
+  }
+
+  void _showTermsRequiredMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Debes aceptar los términos y condiciones para continuar.',
+        ),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _showTermsDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Términos y condiciones'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _termsItems
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text('• $item'),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -343,6 +410,13 @@ class _SignUpPageState extends State<SignUpPage>
 
                                   const SizedBox(height: 32),
 
+                                  FadeInUp(
+                                    delay: const Duration(milliseconds: 780),
+                                    child: _buildTermsAcceptance(),
+                                  ),
+
+                                  const SizedBox(height: 16),
+
                                   // Sign Up Button
                                   FadeInUp(
                                     delay: const Duration(milliseconds: 800),
@@ -557,8 +631,68 @@ class _SignUpPageState extends State<SignUpPage>
 
   Widget _buildGoogleButton(bool isLoading) {
     return GoogleAuthButton(
-      onPressed: _handleGoogleSignUp,
+      onPressed: isLoading ? null : _handleGoogleSignUp,
       isLoading: isLoading,
+    );
+  }
+
+  Widget _buildTermsAcceptance() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey.shade50,
+        border: Border.all(color: AppColors.greyLight),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: _acceptedTerms,
+            activeColor: AppColors.primary,
+            onChanged: (value) {
+              setState(() {
+                _acceptedTerms = value ?? false;
+              });
+            },
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                children: [
+                  Text(
+                    'Acepto los ',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _showTermsDialog,
+                    child: Text(
+                      'términos y condiciones',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    ' para completar el registro.',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
