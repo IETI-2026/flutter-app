@@ -226,7 +226,7 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
   Widget build(BuildContext context) {
     if (widget.embedded) {
       return Container(
-        color: AppColors.backgroundLight,
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: Column(
           children: [
             _FilterPanel(
@@ -250,23 +250,22 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Mis Servicios',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         leading: Navigator.canPop(context)
             ? IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
               )
@@ -285,7 +284,7 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
                 _filtersExpanded ? Icons.filter_list_off : Icons.filter_list,
                 color: _hasActiveFilters
                     ? AppColors.primary
-                    : AppColors.textSecondary,
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -329,11 +328,11 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
             children: [
               const Icon(Icons.error_outline, size: 56, color: AppColors.error),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'No se pudieron cargar los servicios',
                 style: TextStyle(
                   fontSize: 16,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
@@ -341,9 +340,9 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
               const SizedBox(height: 8),
               Text(
                 _error!,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -374,21 +373,24 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
             Icon(
               Icons.inbox_outlined,
               size: 72,
-              color: AppColors.grey.withOpacity(0.5),
+              color: AppColors.grey.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'No se encontraron servicios',
               style: TextStyle(
                 fontSize: 16,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Prueba ajustando los filtros',
-              style: TextStyle(fontSize: 13, color: AppColors.textHint),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38),
+              ),
             ),
           ],
         ),
@@ -441,9 +443,9 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
         children: [
           Text(
             '$start-$end de $_total ${_total == 1 ? 'solicitud' : 'solicitudes'}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           Row(
@@ -459,9 +461,9 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
               const SizedBox(width: 4),
               Text(
                 'Pág. ${_page + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(width: 4),
@@ -511,19 +513,19 @@ class _FilterPanel extends StatelessWidget {
           : CrossFadeState.showFirst,
       firstChild: const SizedBox.shrink(),
       secondChild: Container(
-        color: AppColors.white,
+        color: Theme.of(context).colorScheme.surface,
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Divider(height: 1, color: AppColors.greyLight),
+            Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Estado',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
@@ -546,13 +548,13 @@ class _FilterPanel extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: selected
-                            ? _statusColor(status).withOpacity(0.15)
-                            : AppColors.backgroundLight,
+                            ? _statusColor(status).withValues(alpha: 0.15)
+                            : Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: selected
                               ? _statusColor(status)
-                              : AppColors.greyLight,
+                              : Theme.of(context).colorScheme.outlineVariant,
                         ),
                       ),
                       child: Text(
@@ -562,7 +564,7 @@ class _FilterPanel extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: selected
                               ? _statusColor(status)
-                              : AppColors.textSecondary,
+                              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -601,8 +603,8 @@ class _FilterPanel extends StatelessWidget {
                     icon: const Icon(Icons.close, size: 16),
                     label: const Text('Limpiar'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textSecondary,
-                      side: const BorderSide(color: AppColors.greyLight),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 10,
@@ -677,20 +679,20 @@ class _FilterTextField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
-          style: const TextStyle(fontSize: 13),
+          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(fontSize: 12, color: AppColors.textHint),
-            prefixIcon: Icon(icon, size: 16, color: AppColors.grey),
+            hintStyle: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.38)),
+            prefixIcon: Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 36,
               minHeight: 36,
@@ -701,14 +703,14 @@ class _FilterTextField extends StatelessWidget {
               horizontal: 10,
             ),
             filled: true,
-            fillColor: AppColors.backgroundLight,
+            fillColor: Theme.of(context).scaffoldBackgroundColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.greyLight),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.greyLight),
+              borderSide: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
@@ -741,8 +743,8 @@ class _PaginationButton extends StatelessWidget {
         height: 28,
         decoration: BoxDecoration(
           color: enabled
-              ? AppColors.primary.withOpacity(0.1)
-              : AppColors.greyLight,
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : Theme.of(context).colorScheme.outlineVariant,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Icon(
@@ -774,11 +776,11 @@ class _ServiceRequestCard extends StatelessWidget {
         child: Container(
           margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -796,7 +798,7 @@ class _ServiceRequestCard extends StatelessWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -812,10 +814,10 @@ class _ServiceRequestCard extends StatelessWidget {
                         children: [
                           Text(
                             request.problema,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -823,9 +825,9 @@ class _ServiceRequestCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             _formatDate(request.updatedAt ?? request.createdAt),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -838,16 +840,16 @@ class _ServiceRequestCard extends StatelessWidget {
                     ),
                     if (onTap != null) ...[
                       const SizedBox(width: 8),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right,
                         size: 20,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ],
                   ],
                 ),
                 const SizedBox(height: 10),
-                const Divider(height: 1, color: AppColors.greyLight),
+                Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,18 +879,18 @@ class _ServiceRequestCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.location_on_outlined,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           request.addressText!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -997,9 +999,9 @@ class _SkillChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+        color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Text(
         label,
@@ -1024,9 +1026,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,

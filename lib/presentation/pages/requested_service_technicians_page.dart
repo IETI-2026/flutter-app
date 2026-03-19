@@ -198,24 +198,23 @@ class _RequestedServiceTechniciansPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Técnicos disponibles',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back_ios, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh, color: Theme.of(context).colorScheme.onSurface),
             onPressed: _loadTechnicians,
           ),
         ],
@@ -243,9 +242,9 @@ class _RequestedServiceTechniciansPageState
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 24),
@@ -275,22 +274,25 @@ class _RequestedServiceTechniciansPageState
             Icon(
               Icons.engineering_outlined,
               size: 72,
-              color: AppColors.primary.withOpacity(0.4),
+              color: AppColors.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Esperando técnicos...',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Los técnicos que acepten tu solicitud aparecerán aquí en tiempo real.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
             ),
             const SizedBox(height: 16),
             const _PulsingIndicator(),
@@ -302,7 +304,7 @@ class _RequestedServiceTechniciansPageState
     return Column(
       children: [
         Container(
-          color: AppColors.white,
+          color: Theme.of(context).colorScheme.surface,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Row(
             children: [
@@ -314,10 +316,10 @@ class _RequestedServiceTechniciansPageState
               const SizedBox(width: 8),
               Text(
                 '${_technicians.length} técnico${_technicians.length == 1 ? '' : 's'} disponible${_technicians.length == 1 ? '' : 's'}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
@@ -378,11 +380,11 @@ class _TechnicianCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -396,7 +398,7 @@ class _TechnicianCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                   backgroundImage:
                       photoUrl != null ? NetworkImage(photoUrl) : null,
                   child: photoUrl == null
@@ -419,10 +421,10 @@ class _TechnicianCard extends StatelessWidget {
                     children: [
                       Text(
                         fullName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -434,26 +436,26 @@ class _TechnicianCard extends StatelessWidget {
                             color: Colors.amber,
                           ),
                           const SizedBox(width: 3),
-                          const Text(
+                          Text(
                             '4.8',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Icon(
+                          Icon(
                             Icons.location_on_outlined,
                             size: 14,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             distance,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ],
@@ -465,7 +467,7 @@ class _TechnicianCard extends StatelessWidget {
             ),
             if (skills.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Divider(height: 1, color: AppColors.greyLight),
+              Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 6,
@@ -479,10 +481,10 @@ class _TechnicianCard extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.08),
+                          color: AppColors.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.primary.withOpacity(0.2),
+                            color: AppColors.primary.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Text(
@@ -507,7 +509,7 @@ class _TechnicianCard extends StatelessWidget {
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.white,
                   disabledBackgroundColor:
-                      AppColors.primary.withOpacity(0.6),
+                      AppColors.primary.withValues(alpha: 0.6),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -579,7 +581,7 @@ class _PulsingIndicatorState extends State<_PulsingIndicator>
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(_animation.value),
+              color: AppColors.success.withValues(alpha: _animation.value),
               shape: BoxShape.circle,
             ),
           ),
@@ -588,7 +590,7 @@ class _PulsingIndicatorState extends State<_PulsingIndicator>
             'En tiempo real',
             style: TextStyle(
               fontSize: 11,
-              color: AppColors.success.withOpacity(_animation.value),
+              color: AppColors.success.withValues(alpha: _animation.value),
               fontWeight: FontWeight.w500,
             ),
           ),

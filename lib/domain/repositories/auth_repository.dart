@@ -25,6 +25,8 @@ abstract class AuthRepository {
 
   Future<Either<Failure, void>> logout();
 
+  Future<Either<Failure, User>> uploadProfilePhoto(String filePath);
+
   Future<bool> isLoggedIn();
 
   Future<String?> getAccessToken();

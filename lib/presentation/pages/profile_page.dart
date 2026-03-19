@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
+import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
+import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
   final User user;
@@ -19,6 +22,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isDark = false;
+  final _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -37,6 +41,37 @@ class _ProfilePageState extends State<ProfilePage> {
     if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      final ext = picked.path.split('.').last.toLowerCase();
+      if (!['jpg', 'jpeg', 'png'].contains(ext)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Solo se permiten imágenes JPG, JPEG o PNG'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        context
+            .read<AuthBloc>()
+            .add(UploadProfilePhotoEvent(filePath: picked.path));
+      }
+    } catch (e) {
+      AppLogger.error('Error picking image', e);
+    }
+  }
+
   Color get _bg => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
   Color get _divider => _isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
   Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
@@ -44,8 +79,29 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.user;
+    return BlocConsumer<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          current is AuthError ||
+          (current is Authenticated && previous is! Authenticated),
+      listener: (context, state) {
+        if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      },
+      builder: (context, state) {
+        final user = state is Authenticated ? state.user : widget.user;
+        final isUploading = state is AuthLoading;
+        return _buildContent(context, user, isUploading);
+      },
+    );
+  }
 
+  Widget _buildContent(BuildContext context, User user, bool isUploading) {
     return SingleChildScrollView(
       child: Column(
         children: [
@@ -56,24 +112,63 @@ class _ProfilePageState extends State<ProfilePage> {
             padding: const EdgeInsets.fromLTRB(24, 32, 24, 28),
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 42,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                  backgroundImage: user.profilePhotoUrl != null
-                      ? NetworkImage(user.profilePhotoUrl!)
-                      : null,
-                  child: user.profilePhotoUrl == null
-                      ? Text(
-                          user.fullName.isNotEmpty
-                              ? user.fullName[0].toUpperCase()
-                              : '?',
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 42,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      backgroundImage: user.profilePhotoUrl != null
+                          ? NetworkImage(user.profilePhotoUrl!)
+                          : null,
+                      child: user.profilePhotoUrl == null
+                          ? Text(
+                              user.fullName.isNotEmpty
+                                  ? user.fullName[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    if (isUploading)
+                      const Positioned.fill(
+                        child: CircleAvatar(
+                          radius: 42,
+                          backgroundColor: Colors.black45,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
                           ),
-                        )
-                      : null,
+                        ),
+                      ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: isUploading ? null : _pickAndUploadPhoto,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: _bg,
+                              width: 2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 14),
                 Text(

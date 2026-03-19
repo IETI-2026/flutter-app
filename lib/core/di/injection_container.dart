@@ -16,6 +16,7 @@ import 'package:flutter_app/domain/usecases/login_usecase.dart';
 import 'package:flutter_app/domain/usecases/login_with_google_usecase.dart';
 import 'package:flutter_app/domain/usecases/logout_usecase.dart';
 import 'package:flutter_app/domain/usecases/signup_usecase.dart';
+import 'package:flutter_app/domain/usecases/upload_profile_photo_usecase.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:get_it/get_it.dart';
@@ -279,6 +280,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
+  sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
 
   sl.registerFactory(
     () => LocationCubit(geocodingDataSource: sl(), tenantService: sl()),
@@ -291,6 +293,7 @@ Future<void> initializeDependencies() async {
       loginWithGoogleUseCase: sl(),
       logoutUseCase: sl(),
       getCurrentUserUseCase: sl(),
+      uploadProfilePhotoUseCase: sl(),
     ),
   );
 }

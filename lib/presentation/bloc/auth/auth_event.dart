@@ -61,3 +61,12 @@ class CheckAuthStatusEvent extends AuthEvent {
 class GetCurrentUserEvent extends AuthEvent {
   const GetCurrentUserEvent();
 }
+
+class UploadProfilePhotoEvent extends AuthEvent {
+  final String filePath;
+
+  const UploadProfilePhotoEvent({required this.filePath});
+
+  @override
+  List<Object?> get props => [filePath];
+}
