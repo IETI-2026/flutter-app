@@ -33,6 +33,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
   String? _activeServicesUserId;
   bool _isDark = false;
 
+  static const List<String> _tabTitles = [
+    'CameYo',
+    'Términos y Condiciones',
+    'Ley 1581 de 2012',
+    'Mis Servicios',
+    'Mi Perfil',
+  ];
+
   Color get _bg => _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
   Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
   Color get _cardAlt => _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
@@ -169,9 +177,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
             backgroundColor: _card,
             elevation: 0,
             title: Text(
-              _selectedIndex == 3 ? 'Mi Perfil' : 'CameYo',
+              _tabTitles[_selectedIndex],
               style: TextStyle(
-                color: _selectedIndex == 3
+                color: _selectedIndex == 4
                     ? _txtPri
                     : AppColors.primary,
                 fontWeight: FontWeight.bold,
@@ -197,7 +205,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
             index: _selectedIndex,
             children: [
               _buildHomeTab(context, user),
-              _buildComingSoonTab(Icons.search, 'Búsqueda'),
+              _buildTermsAndConditionsTab(),
+              _buildDataProtectionTab(),
               BlocBuilder<LocationCubit, LocationState>(
                 bloc: _locationCubit,
                 builder: (context, locationState) {
@@ -233,8 +242,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 label: 'Inicio',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'Buscar',
+                icon: Icon(Icons.article_outlined),
+                activeIcon: Icon(Icons.article),
+                label: 'Términos',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.privacy_tip_outlined),
+                activeIcon: Icon(Icons.privacy_tip),
+                label: 'Ley 1581',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined),
@@ -265,22 +280,123 @@ class _ClientHomePageState extends State<ClientHomePage> {
   void _onTabSelected(int index) {
     setState(() {
       _selectedIndex = index;
-      if (index == 2) {
+      if (index == 3) {
         _misServicesRefreshToken++;
       }
     });
   }
 
-  Widget _buildComingSoonTab(IconData icon, String label) {
-    return Center(
+  Widget _buildTermsAndConditionsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 64, color: AppColors.grey.withOpacity(0.4)),
-          const SizedBox(height: 16),
+          _buildLegalCard(
+            title: 'Términos y condiciones de uso',
+            children: const [
+              'Al usar CameYo aceptas estos términos y el tratamiento de datos personales conforme a la ley colombiana.',
+              'Debes registrar información veraz y mantener actualizados tus datos de contacto.',
+              'El uso inadecuado de la plataforma o el suministro de información falsa puede llevar a la suspensión de la cuenta.',
+              'Las solicitudes y servicios deben realizarse respetando la seguridad, la legalidad y la convivencia entre usuarios y técnicos.',
+              'CameYo podrá actualizar estos términos y notificará los cambios relevantes en la aplicación.',
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildLegalCard(
+            title: 'Consentimiento y registro (tarea #42)',
+            children: const [
+              'No debe completarse el registro sin aceptación previa de los términos y condiciones.',
+              'El texto de términos debe estar disponible y visible para el usuario antes de finalizar su registro.',
+              'La aceptación expresa aplica especialmente al tratamiento de datos personales.',
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataProtectionTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLegalCard(
+            title: 'Ley 1581 de 2012 y Decreto 1377 de 2013',
+            children: const [
+              'Datos como nombre, correo, teléfono, ubicación y datos de pago son datos personales y deben tratarse con medidas de seguridad adecuadas.',
+              'El titular tiene derecho a conocer, actualizar, rectificar y suprimir sus datos, así como revocar la autorización cuando proceda.',
+              'Se requiere autorización expresa para el tratamiento de datos personales, especialmente los sensibles.',
+              'La política de privacidad debe indicar finalidades, derechos del titular, canales de contacto y procedimientos para consultas y reclamos.',
+              'Debe evaluarse si la base de datos debe registrarse ante la Superintendencia de Industria y Comercio según la regulación aplicable.',
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildLegalCard(
+            title: 'Guía para decisiones de seguridad (tarea #43)',
+            children: const [
+              'Aplicar controles de acceso y mínimo privilegio para proteger la información de usuarios.',
+              'Usar cifrado en tránsito y, cuando aplique, en almacenamiento de información sensible.',
+              'Mantener trazabilidad de operaciones relevantes y gestionar incidentes de seguridad de forma oportuna.',
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegalCard({
+    required String title,
+    required List<String> children,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _card,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Text(
-            '$label próximamente',
-            style: TextStyle(fontSize: 16, color: _txtSec),
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _txtPri,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 3),
+                    child: Icon(
+                      Icons.circle,
+                      size: 8,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: _txtSec,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
