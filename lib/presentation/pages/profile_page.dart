@@ -8,6 +8,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
+import 'package:flutter_app/presentation/pages/terms_and_conditions_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -63,9 +64,9 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       if (mounted) {
-        context
-            .read<AuthBloc>()
-            .add(UploadProfilePhotoEvent(filePath: picked.path));
+        context.read<AuthBloc>().add(
+          UploadProfilePhotoEvent(filePath: picked.path),
+        );
       }
     } catch (e) {
       AppLogger.error('Error picking image', e);
@@ -75,7 +76,8 @@ class _ProfilePageState extends State<ProfilePage> {
   Color get _bg => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
   Color get _divider => _isDark ? const Color(0xFF2E2E2E) : AppColors.greyLight;
   Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
-  Color get _txtSec => _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+  Color get _txtSec =>
+      _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +118,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     CircleAvatar(
                       radius: 42,
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
                       backgroundImage: user.profilePhotoUrl != null
                           ? NetworkImage(user.profilePhotoUrl!)
                           : null,
@@ -155,10 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                             color: AppColors.primary,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: _bg,
-                              width: 2,
-                            ),
+                            border: Border.all(color: _bg, width: 2),
                           ),
                           child: const Icon(
                             Icons.camera_alt,
@@ -205,7 +206,9 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 _MenuItem(
                   icon: Icons.dark_mode_outlined,
-                  label: _isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro',
+                  label: _isDark
+                      ? 'Cambiar a modo claro'
+                      : 'Cambiar a modo oscuro',
                   showChevron: false,
                   isDark: _isDark,
                   onTap: () => sl<ThemeService>().toggle(),
@@ -262,8 +265,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   label: 'Términos y condiciones',
                   isDark: _isDark,
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Próximamente')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TermsAndConditionsPage(),
+                      ),
                     );
                   },
                 ),
