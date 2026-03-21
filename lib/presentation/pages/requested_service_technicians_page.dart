@@ -198,8 +198,9 @@ class _RequestedServiceTechniciansPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         elevation: 0,
         title: Text(
           'Técnicos disponibles',
@@ -304,7 +305,7 @@ class _RequestedServiceTechniciansPageState
     return Column(
       children: [
         Container(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).appBarTheme.backgroundColor,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Row(
             children: [

@@ -227,7 +227,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 _Divider(color: _divider),
                 _MenuItem(
                   icon: Icons.list_alt_outlined,
-                  label: 'Servicios solicitados',
+                  label: 'Camellos solicitados',
                   isDark: _isDark,
                   onTap: () {
                     Navigator.push(

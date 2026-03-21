@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/di/injection_container.dart';
+import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/services/payment_service.dart';
 
 class PaymentsManagementPage extends StatefulWidget {
@@ -20,10 +22,33 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
   List<PaymentMethodModel> _methods = <PaymentMethodModel>[];
   List<PaymentModel> _payments = <PaymentModel>[];
 
+  bool _isDark = false;
+
+  void _onThemeChanged() {
+    if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
+  }
+
+  Color get _bg =>
+      _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
+  Color get _card => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
+  Color get _cardAlt =>
+      _isDark ? const Color(0xFF252525) : AppColors.surfaceSoft;
+  Color get _txtPri => _isDark ? Colors.white : AppColors.textPrimary;
+  Color get _txtSec =>
+      _isDark ? const Color(0xFF9E9E9E) : AppColors.textSecondary;
+
   @override
   void initState() {
     super.initState();
+    _isDark = sl<ThemeService>().isDark;
+    sl<ThemeService>().addListener(_onThemeChanged);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    sl<ThemeService>().removeListener(_onThemeChanged);
+    super.dispose();
   }
 
   String _labelForMethod(String method) {
@@ -151,7 +176,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
     final selectedMethod = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: _card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -163,16 +188,25 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Agregar método de pago',
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    color: _txtPri,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 ..._availableMethods.map(
                   (method) => Card(
+                    color: _cardAlt,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: AppColors.greyLight),
+                      side: BorderSide(
+                        color: _isDark
+                            ? const Color(0xFF3A3A3A)
+                            : AppColors.greyLight,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: ListTile(
@@ -181,17 +215,22 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                         vertical: 6,
                       ),
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.backgroundLight,
+                        backgroundColor: _isDark
+                            ? const Color(0xFF333333)
+                            : AppColors.backgroundLight,
                         child: Icon(
                           _iconForMethod(method),
-                          color: AppColors.textPrimary,
+                          color: _txtPri,
                         ),
                       ),
                       title: Text(
                         _labelForMethod(method),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: _txtPri,
+                        ),
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: Icon(Icons.chevron_right, color: _txtSec),
                       onTap: () => Navigator.pop(context, method),
                     ),
                   ),
@@ -215,16 +254,18 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: _card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final borderColor =
+                _isDark ? const Color(0xFF3A3A3A) : AppColors.greyLight;
             final inputBorder = OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.greyLight),
+              borderSide: BorderSide(color: borderColor),
             );
 
             return SafeArea(
@@ -244,7 +285,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                         width: 42,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.greyLight,
+                          color: borderColor,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -253,28 +294,31 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: AppColors.backgroundLight,
+                          backgroundColor: _isDark
+                              ? const Color(0xFF333333)
+                              : AppColors.backgroundLight,
                           child: Icon(
                             _iconForMethod(selectedMethod),
-                            color: AppColors.textPrimary,
+                            color: _txtPri,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             _labelForMethod(selectedMethod),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
+                              color: _txtPri,
                             ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Completa estos datos para guardar el método en tu cuenta.',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: _txtSec),
                     ),
                     const SizedBox(height: 16),
                     TextField(
@@ -331,7 +375,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.backgroundLight,
+                        color: _cardAlt,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: SwitchListTile(
@@ -697,10 +741,14 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Text(
             'Tus métodos de pago',
-            style: TextStyle(fontSize: 36, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.w700,
+              color: _txtPri,
+            ),
           ),
         ),
         IconButton.filled(
@@ -718,19 +766,23 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
   Widget _buildSavedMethodsCards() {
     if (_methods.isEmpty) {
       return Card(
+        color: _card,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Aún no tienes métodos guardados',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: _txtPri,
+                ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Toca el botón + para agregar uno.',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: _txtSec),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
@@ -809,20 +861,25 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
 
   Widget _buildAvailableMethodsCard() {
     return Card(
+      color: _card,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Métodos disponibles para tu cuenta',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: _txtPri,
+              ),
             ),
             const SizedBox(height: 10),
             if (_availableMethods.isEmpty)
-              const Text(
+              Text(
                 'No hay métodos habilitados en este momento.',
-                style: TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: _txtSec),
               )
             else
               Wrap(
@@ -831,12 +888,21 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                 children: _availableMethods
                     .map(
                       (method) => Chip(
+                        backgroundColor: _cardAlt,
+                        side: BorderSide(
+                          color: _isDark
+                              ? const Color(0xFF3A3A3A)
+                              : AppColors.greyLight,
+                        ),
                         avatar: Icon(
                           _iconForMethod(method),
                           size: 16,
-                          color: AppColors.textPrimary,
+                          color: _txtPri,
                         ),
-                        label: Text(_labelForMethod(method)),
+                        label: Text(
+                          _labelForMethod(method),
+                          style: TextStyle(color: _txtPri),
+                        ),
                       ),
                     )
                     .toList(),
@@ -853,17 +919,22 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
     required VoidCallback? onTap,
   }) {
     return Card(
+      color: _card,
       elevation: 0,
       child: ListTile(
         title: Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 24),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 24,
+            color: _txtPri,
+          ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: _txtSec),
         ),
-        trailing: const Icon(Icons.chevron_right),
+        trailing: Icon(Icons.chevron_right, color: _txtSec),
         onTap: onTap,
       ),
     );
@@ -871,6 +942,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
 
   Widget _buildPaymentsCard() {
     return Card(
+      color: _card,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -878,10 +950,14 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Historial de pagos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: _txtPri,
+                    ),
                   ),
                 ),
                 ConstrainedBox(
@@ -954,7 +1030,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
         .length;
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: _bg,
       appBar: AppBar(
         title: Text('Pagos · ${widget.roleLabel}'),
         actions: [

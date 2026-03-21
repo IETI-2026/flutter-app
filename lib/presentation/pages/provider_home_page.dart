@@ -14,6 +14,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/more_information_page.dart';
+import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -37,9 +38,14 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   bool _wsInitialized = false;
   final List<Map<String, dynamic>> _newRequests = [];
+  OverlayEntry? _notificationOverlay;
 
   List<Map<String, dynamic>> _availableRequests = [];
   bool _loadingAvailable = false;
+
+  List<Map<String, dynamic>> _assignedRequests = [];
+  bool _loadingAssigned = false;
+  bool _assignedInitialized = false;
 
   List<String> _skills = [];
   bool _savingSkills = false;
@@ -126,7 +132,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     _wsInitialized = true;
 
     final wsService = sl<WebSocketService>();
-    wsService.connect();
+    wsService.connect(
+      technicianId: userId,
+      tenantId: sl<TenantService>().tenantId,
+    );
 
     wsService.onNewServiceRequest((data) {
       if (!mounted) return;
@@ -141,15 +150,28 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         setState(() {
           _newRequests.add(data);
         });
+        _showCamelloNotification();
       }
     });
+  }
 
-    // Wait a moment for the connection to establish before joining room
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        wsService.joinTechnicianRoom(userId, sl<TenantService>().tenantId);
-      }
-    });
+  void _showCamelloNotification() {
+    _notificationOverlay?.remove();
+    _notificationOverlay = null;
+
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _CamelloPopup(
+        isDark: _isDark,
+        onDismiss: () {
+          entry.remove();
+          if (_notificationOverlay == entry) _notificationOverlay = null;
+        },
+      ),
+    );
+    _notificationOverlay = entry;
+    overlay.insert(entry);
   }
 
   Future<void> _addSkill(String skill) async {
@@ -355,6 +377,38 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     );
   }
 
+  Future<void> _loadAssignedRequests(String userId) async {
+    setState(() => _loadingAssigned = true);
+    try {
+      final response = await sl<Dio>().get(
+        '/service-requests',
+        queryParameters: {
+          'technicianUserId': userId,
+          'status': 'ASSIGNED',
+          'page': 0,
+          'limit': 50,
+        },
+      );
+      final data = response.data;
+      List<dynamic> raw = [];
+      if (data is Map<String, dynamic>) {
+        raw = (data['requests'] ?? []) as List<dynamic>;
+      } else if (data is List) {
+        raw = data;
+      }
+      if (mounted) {
+        setState(() {
+          _assignedRequests =
+              raw.whereType<Map<String, dynamic>>().toList();
+        });
+      }
+    } catch (_) {
+      // keep previous list on error
+    } finally {
+      if (mounted) setState(() => _loadingAssigned = false);
+    }
+  }
+
   Future<void> _loadAvailableRequests(String userId) async {
     setState(() => _loadingAvailable = true);
     try {
@@ -473,6 +527,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     sl<ThemeService>().removeListener(_onThemeChanged);
     _locationCubit.close();
     _skillSearchController.dispose();
+    _notificationOverlay?.remove();
+    _notificationOverlay = null;
     if (_wsInitialized) {
       sl<WebSocketService>().offNewServiceRequest();
     }
@@ -525,6 +581,13 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         if (!_wsInitialized) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _initWebSocket(user.id);
+          });
+        }
+
+        if (!_assignedInitialized) {
+          _assignedInitialized = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _loadAssignedRequests(user.id);
           });
         }
 
@@ -609,7 +672,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             children: [
               _buildHomeTab(user),
               _buildSolicitudesTab(user),
-              _buildComingSoonTab(Icons.work_outline, 'Activos'),
+              _buildCamellosActivosTab(user),
               _buildProfileTab(user),
             ],
           ),
@@ -618,6 +681,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             onTap: (i) {
               setState(() => _selectedIndex = i);
               if (i == 1) _loadAvailableRequests(user.id);
+              if (i == 2) _loadAssignedRequests(user.id);
             },
             type: BottomNavigationBarType.fixed,
             backgroundColor: _appBarBg,
@@ -637,7 +701,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined),
                 activeIcon: Icon(Icons.list_alt),
-                label: 'Solicitudes',
+                label: 'Alrededores',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.work_outline),
@@ -680,67 +744,54 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // "Modo Profesional" badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _orange.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _orange.withValues(alpha: 0.35),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ProfilePhotoWidget(
+                          photoUrl: user.profilePhotoUrl,
+                          name: user.fullName,
+                          radius: 22,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.verified, size: 12, color: _orange),
-                          const SizedBox(width: 5),
-                          Text(
-                            'Modo Profesional',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: _orange,
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(width: 10),
+                        // "Modo Profesional" badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _orange.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _orange.withValues(alpha: 0.35),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    // Notification bell with optional pop-up label
-                    GestureDetector(
-                      onTap: () => _showNotificationsPanel(context, user.id),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (_newRequests.isNotEmpty) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 3,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.verified,
+                                size: 12,
+                                color: _orange,
                               ),
-                              decoration: BoxDecoration(
-                                color: _orange.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _orange.withValues(alpha: 0.35),
-                                ),
-                              ),
-                              child: Text(
-                                'Tienes camellos disponibles',
+                              const SizedBox(width: 5),
+                              Text(
+                                'Modo Profesional',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   color: _orange,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Stack(
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Notification bell with optional pop-up label
+                    GestureDetector(
+                      onTap: () => _showNotificationsPanel(context, user.id),
+                      child: Stack(
                             clipBehavior: Clip.none,
                             children: [
                               Icon(
@@ -763,8 +814,6 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                                 ),
                             ],
                           ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
@@ -849,7 +898,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                         '4.8',
                         'Calificación',
                         Icons.star_rounded,
-                        AppColors.secondary,
+                        AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -858,7 +907,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                         '0',
                         'Servicios',
                         Icons.check_circle_rounded,
-                        AppColors.success,
+                        AppColors.primary,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -878,144 +927,282 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
           const SizedBox(height: 20),
 
-          // Solicitudes pendientes
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Solicitudes Pendientes',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: _txtPri,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _newRequests.isNotEmpty ? _orange : _cardAlt,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${_newRequests.length}',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  if (_newRequests.isEmpty)
-                    Center(
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.inbox_outlined,
-                            size: 48,
-                            color: _txtSec.withValues(alpha: 0.4),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No hay solicitudes pendientes',
-                            style: GoogleFonts.poppins(
-                              fontSize: 13,
-                              color: _txtSec,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Recibirás notificaciones cuando haya nuevas solicitudes',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: _txtSec.withValues(alpha: 0.6),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: 280,
-                      child: ListView.builder(
-                        itemCount: _newRequests.length,
-                        itemBuilder: (context, index) =>
-                            _buildRequestPreviewCard(
-                              _newRequests[index],
-                              user.id,
-                            ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // Servicios activos
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _card,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Servicios Activos',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: _txtPri,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.work_outline,
-                          size: 48,
-                          color: _txtSec.withValues(alpha: 0.4),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No tienes servicios activos',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: _txtSec,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          if (_assignedRequests.isNotEmpty) ...[
+            _buildCamellosAceptadosSection(),
+            const SizedBox(height: 16),
+            _buildPosiblesCamellosSection(user),
+          ] else ...[
+            _buildPosiblesCamellosSection(user),
+            const SizedBox(height: 16),
+            _buildCamellosAceptadosSection(),
+          ],
 
           const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPosiblesCamellosSection(User user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Posibles Camellos',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _txtPri,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _newRequests.isNotEmpty ? _orange : _cardAlt,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_newRequests.length}',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (_newRequests.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.inbox_outlined,
+                      size: 48,
+                      color: _txtSec.withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No hay camellos posibles',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: _txtSec,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Recibirás notificaciones cuando haya nuevos camellos disponibles',
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: _txtSec.withValues(alpha: 0.6),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              )
+            else
+              SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  itemCount: _newRequests.length,
+                  itemBuilder: (context, index) => _buildRequestPreviewCard(
+                    _newRequests[index],
+                    user.id,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCamellosAceptadosSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Camellos Aceptados',
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: _txtPri,
+                  ),
+                ),
+                if (_assignedRequests.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_assignedRequests.length}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            if (_loadingAssigned)
+              const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            else if (_assignedRequests.isEmpty)
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.work_outline,
+                      size: 48,
+                      color: _txtSec.withValues(alpha: 0.4),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No tienes camellos aceptados',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: _txtSec,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _assignedRequests.length,
+                itemBuilder: (context, index) =>
+                    _buildAssignedServiceCard(_assignedRequests[index]),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAssignedServiceCard(Map<String, dynamic> request) {
+    final problema = request['problema']?.toString() ?? 'Sin descripción';
+    final address = request['addressText']?.toString();
+    final skills =
+        (request['requestedSkills'] as List?)
+            ?.map((s) => s.toString())
+            .take(2)
+            .join(', ') ??
+        '';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _cardAlt,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'Asignado',
+                  style: GoogleFonts.poppins(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            problema,
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: _txtPri,
+              fontWeight: FontWeight.w500,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (skills.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              skills,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+          if (address != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 12,
+                  color: _txtSec,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    address,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: _txtSec,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -1218,7 +1405,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 _ProMenuItem(
                   icon: Icons.check_circle_outline,
                   label: 'Servicios',
-                  onTap: () => _showComingSoon(context),
+                  onTap: () {
+                    setState(() => _selectedIndex = 1);
+                    _loadAvailableRequests(user.id);
+                  },
                 ),
               ],
             ),
@@ -1260,35 +1450,73 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                   ),
                   const SizedBox(height: 14),
                   _buildSkillsSelector(),
-                  if (_skills.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _skills
-                          .map(
-                            (s) => Chip(
-                              label: Text(
-                                s,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: _orange,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              backgroundColor: _orange.withValues(alpha: 0.12),
-                              side: BorderSide(
-                                color: _orange.withValues(alpha: 0.35),
-                              ),
-                              deleteIconColor: _orange,
-                              onDeleted: () => _removeSkill(s),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ..._skills.map(
+                        (s) => Chip(
+                          label: Text(
+                            s,
+                            style: GoogleFonts.poppins(
+                              fontSize: 12,
+                              color: _orange,
+                              fontWeight: FontWeight.w500,
                             ),
-                          )
-                          .toList(),
-                    ),
-                  ],
+                          ),
+                          backgroundColor: _orange.withValues(alpha: 0.12),
+                          side: BorderSide(
+                            color: _orange.withValues(alpha: 0.35),
+                          ),
+                          deleteIconColor: _orange,
+                          onDeleted: () => _removeSkill(s),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: GestureDetector(
+                          onTap: () => _showComingSoon(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.add,
+                                  size: 12,
+                                  color: AppColors.primary.withValues(alpha: 0.5),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Sugerir habilidad',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -1578,23 +1806,200 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     );
   }
 
-  Widget _buildComingSoonTab(IconData icon, String label) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 56, color: _txtSec.withValues(alpha: 0.3)),
-          const SizedBox(height: 14),
-          Text(
-            '$label próximamente',
-            style: GoogleFonts.poppins(fontSize: 15, color: _txtSec),
-          ),
-        ],
+  Widget _buildCamellosActivosTab(User user) {
+    if (_loadingAssigned) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
+    }
+
+    if (_assignedRequests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.work_outline,
+              size: 56,
+              color: _txtSec.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              'No tienes camellos activos',
+              style: GoogleFonts.poppins(fontSize: 15, color: _txtSec),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Aquí verás los servicios que hayas aceptado',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                color: _txtSec.withValues(alpha: 0.6),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () => _loadAssignedRequests(user.id),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _assignedRequests.length,
+        itemBuilder: (context, index) {
+          final r = _assignedRequests[index];
+          final problema = r['problema']?.toString() ?? 'Sin descripción';
+          final address = r['addressText']?.toString();
+          final skills =
+              (r['requestedSkills'] as List?)
+                  ?.map((s) => s.toString())
+                  .toList() ??
+              [];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Asignado',
+                        style: GoogleFonts.poppins(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  problema,
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    color: _txtPri,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (skills.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: skills
+                        .map(
+                          (s) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              s,
+                              style: GoogleFonts.poppins(
+                                fontSize: 10,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                if (address != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 13,
+                        color: _txtSec,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          address,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            fontSize: 11,
+                            color: _txtSec,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
+
   // ── STAT CARD ────────────────────────────────────────────────────────────────
+
+  BottomNavigationBarItem _navItem(
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
+    Widget buildColumn(IconData iconData, bool active) => SizedBox(
+          height: 52,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Icon(iconData),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 10.5,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  color: active ? _orange : const Color(0xFF555555),
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        );
+
+    return BottomNavigationBarItem(
+      icon: buildColumn(icon, false),
+      activeIcon: buildColumn(activeIcon, true),
+      label: label,
+    );
+  }
 
   Widget _buildStatCard(
     String value,
@@ -1634,6 +2039,120 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 }
 
 // ── NOTIFICATIONS PANEL ──────────────────────────────────────────────────────
+
+class _CamelloPopup extends StatefulWidget {
+  final bool isDark;
+  final VoidCallback onDismiss;
+
+  const _CamelloPopup({required this.isDark, required this.onDismiss});
+
+  @override
+  State<_CamelloPopup> createState() => _CamelloPopupState();
+}
+
+class _CamelloPopupState extends State<_CamelloPopup>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<Offset> _slide;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
+    _ctrl.forward();
+    Future.delayed(const Duration(seconds: 3), _dismiss);
+  }
+
+  void _dismiss() async {
+    if (!mounted) return;
+    await _ctrl.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.isDark ? const Color(0xFF1C1C1C) : Colors.white;
+    return Positioned(
+      top: MediaQuery.of(context).padding.top + 12,
+      left: 20,
+      right: 20,
+      child: SlideTransition(
+        position: _slide,
+        child: FadeTransition(
+          opacity: _fade,
+          child: Material(
+            color: Colors.transparent,
+            child: GestureDetector(
+              onTap: _dismiss,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '¡Camellos\ndisponibles!',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _NotificationsPanel extends StatelessWidget {
   final List<Map<String, dynamic>> requests;
