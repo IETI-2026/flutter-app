@@ -736,22 +736,19 @@ class _PaginationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeColor =
+        isDark ? const Color(0xFF90CAF9) : const Color(0xFF1565C0);
+    final disabledColor = Theme.of(context).colorScheme.onSurface.withValues(
+      alpha: 0.22,
+    );
+
     return GestureDetector(
       onTap: enabled ? onTap : null,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: enabled
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : Theme.of(context).colorScheme.outlineVariant,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: enabled ? AppColors.primary : AppColors.grey,
-        ),
+      child: Icon(
+        icon,
+        size: 26,
+        color: enabled ? activeColor : disabledColor,
       ),
     );
   }

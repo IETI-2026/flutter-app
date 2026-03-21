@@ -1,10 +1,14 @@
 package com.example.flutter_app
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -13,9 +17,11 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val methodChannelName = "com.cameyo.app/speech"
     private val eventChannelName = "com.cameyo.app/speech_events"
+    private val recordAudioRequestCode = 1001
 
     private var recognizer: SpeechRecognizer? = null
     private var eventSink: EventChannel.EventSink? = null
+    private var pendingStartResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -34,8 +40,19 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "start" -> {
-                        startRecognizer()
-                        result.success(null)
+                        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                            == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            startRecognizer()
+                            result.success(null)
+                        } else {
+                            pendingStartResult = result
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.RECORD_AUDIO),
+                                recordAudioRequestCode,
+                            )
+                        }
                     }
                     "stop" -> {
                         recognizer?.stopListening()
@@ -48,6 +65,23 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == recordAudioRequestCode) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startRecognizer()
+                pendingStartResult?.success(null)
+            } else {
+                pendingStartResult?.error("PERMISSION_DENIED", "Permiso de micrófono denegado", null)
+            }
+            pendingStartResult = null
+        }
     }
 
     private fun startRecognizer() {

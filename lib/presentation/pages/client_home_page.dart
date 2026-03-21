@@ -15,6 +15,7 @@ import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/profile_page.dart';
 import 'package:flutter_app/presentation/pages/requested_service_technicians_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
+import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -181,14 +182,20 @@ class _ClientHomePageState extends State<ClientHomePage> {
             actions: _selectedIndex == 0
                 ? [
                     IconButton(
-                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      icon: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: _txtPri,
+                      ),
                       tooltip: 'Pagos',
                       onPressed: () {
                         Navigator.pushNamed(context, '/client-payments');
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.notifications_outlined),
+                      icon: Icon(
+                        Icons.notifications_outlined,
+                        color: _txtPri,
+                      ),
                       onPressed: () {},
                     ),
                   ]
@@ -240,7 +247,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined),
                 activeIcon: Icon(Icons.list_alt),
-                label: 'Mis Servicios',
+                label: 'Solicitudes',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
@@ -306,6 +313,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                ProfilePhotoWidget(
+                  photoUrl: user.profilePhotoUrl,
+                  name: user.fullName,
+                  radius: 24,
+                ),
+                const SizedBox(height: 12),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -363,7 +376,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '¿Qué servicio necesitas hoy?',
+                  '¿Qué camellos necesitas hoy?',
                   style: TextStyle(fontSize: 14, color: _txtSec),
                 ),
                 const SizedBox(height: 20),
@@ -375,7 +388,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                   child: const TextField(
                     decoration: InputDecoration(
-                      hintText: 'Buscar servicios...',
+                      hintText: 'Buscar camellos...',
                       border: InputBorder.none,
                       icon: Icon(Icons.search, color: AppColors.grey),
                     ),
@@ -391,7 +404,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Servicios activos',
+                  'Camellos activos',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -427,7 +440,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
-                            'No tienes servicios activos en este momento.',
+                            'No tienes camellos activos en este momento.',
                             style: TextStyle(color: _txtSec),
                           ),
                         ),
@@ -683,7 +696,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 const SizedBox(height: 8),
                 Text(
                   request.addressText!,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: _txtSec),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -805,6 +818,16 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
 
     try {
       await _method.invokeMethod('start');
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      setState(() => _isListening = false);
+      if (e.code == 'PERMISSION_DENIED') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Se necesita permiso de micrófono para dictar.'),
+          ),
+        );
+      }
     } catch (_) {
       if (mounted) setState(() => _isListening = false);
     }
@@ -821,11 +844,12 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + bottomInset),
       child: Column(
@@ -837,7 +861,7 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: colorScheme.onSurface.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -848,19 +872,24 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
             maxLines: 4,
-            textCapitalization: TextCapitalization.none,
-            inputFormatters: const [_LowerCaseTextFormatter()],
+            textCapitalization: TextCapitalization.sentences,
+            autocorrect: true,
+            enableSuggestions: true,
             autofocus: false,
+            style: TextStyle(color: colorScheme.onSurface),
             decoration: InputDecoration(
               hintText:
                   'ej: el lavamanos tiene una fuga y gotea constantemente',
+              hintStyle: TextStyle(
+                color: colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -893,7 +922,7 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                final text = _controller.text.trim();
+                final text = _controller.text.trim().toLowerCase();
                 if (text.isNotEmpty) Navigator.of(context).pop(text);
               },
               style: ElevatedButton.styleFrom(
@@ -912,22 +941,6 @@ class _ServiceRequestSheetState extends State<_ServiceRequestSheet> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _LowerCaseTextFormatter extends TextInputFormatter {
-  const _LowerCaseTextFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toLowerCase(),
-      selection: newValue.selection,
-      composing: TextRange.empty,
     );
   }
 }
