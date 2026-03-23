@@ -767,24 +767,27 @@ class _ClientHomePageState extends State<ClientHomePage> {
               }
             : isActive
             ? () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ServiceMapPage(
-                      requestId: request.id,
-                      technicianId: request.assignedTechnicianId ?? '',
-                      tenantId: request.serviceCity ?? '',
-                      clientLatitude: request.latitude ?? 0,
-                      clientLongitude: request.longitude ?? 0,
-                      clientInfo: const {},
-                      serviceStatus: request.status,
-                      startedAt: request.startedAt,
-                      technicianMarkedComplete: request.technicianMarkedComplete,
-                      clientMarkedComplete: request.clientMarkedComplete,
-                      isClientView: true,
-                      clientUserId: userId,
-                    ),
-                  ),
-                );
+                Navigator.of(context)
+                    .push(
+                      MaterialPageRoute(
+                        builder: (_) => ServiceMapPage(
+                          requestId: request.id,
+                          technicianId: request.assignedTechnicianId ?? '',
+                          tenantId: request.serviceCity ?? '',
+                          clientLatitude: request.latitude ?? 0,
+                          clientLongitude: request.longitude ?? 0,
+                          clientInfo: const {},
+                          serviceStatus: request.status,
+                          startedAt: request.startedAt,
+                          technicianMarkedComplete:
+                              request.technicianMarkedComplete,
+                          clientMarkedComplete: request.clientMarkedComplete,
+                          isClientView: true,
+                          clientUserId: userId,
+                        ),
+                      ),
+                    )
+                    .then((_) => _loadActiveServices(userId));
               }
             : null,
         child: Padding(

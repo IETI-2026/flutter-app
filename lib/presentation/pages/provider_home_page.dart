@@ -508,6 +508,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             (r) => r['id']?.toString() == requestId,
           );
         });
+        // Reload assigned list so the accepted request appears immediately
+        // and the WebSocket room is joined for status updates.
+        _loadAssignedRequests(technicianId);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Solicitud aceptada', style: GoogleFonts.poppins()),
@@ -1205,21 +1208,23 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ServiceMapPage(
-              requestId: requestId,
-              technicianId: technicianId,
-              tenantId: tenantId,
-              clientLatitude: clientLat,
-              clientLongitude: clientLng,
-              clientInfo: clientInfo,
-              serviceStatus: status,
-              startedAt: startedAt,
-              technicianMarkedComplete: technicianMarkedComplete,
-            ),
-          ),
-        );
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder: (_) => ServiceMapPage(
+                  requestId: requestId,
+                  technicianId: technicianId,
+                  tenantId: tenantId,
+                  clientLatitude: clientLat,
+                  clientLongitude: clientLng,
+                  clientInfo: clientInfo,
+                  serviceStatus: status,
+                  startedAt: startedAt,
+                  technicianMarkedComplete: technicianMarkedComplete,
+                ),
+              ),
+            )
+            .then((_) => _loadAssignedRequests(technicianId));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

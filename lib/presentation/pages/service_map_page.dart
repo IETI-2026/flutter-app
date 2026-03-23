@@ -95,8 +95,10 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
   void dispose() {
     _locationTimer?.cancel();
     _timerTick?.cancel();
+    // Only unregister location events — leaving service_status_updated
+    // registered so that the parent page (ProviderHomePage / ClientHomePage)
+    // keeps its own handler alive after this page is closed.
     sl<WebSocketService>().offLocationUpdated();
-    sl<WebSocketService>().offServiceStatusUpdated();
     super.dispose();
   }
 
