@@ -419,6 +419,7 @@ class _ServiceRequestsPageState extends State<ServiceRequestsPage> {
                         builder: (_) => RequestedServiceTechniciansPage(
                           requestId: request.id,
                           clientUserId: widget.userId,
+                          tenantId: request.serviceCity ?? widget.tenantId ?? '',
                           requestLatitude: request.latitude,
                           requestLongitude: request.longitude,
                         ),

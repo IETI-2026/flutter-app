@@ -14,6 +14,9 @@ class ServiceRequest extends Equatable {
   final String? serviceCity;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final DateTime? startedAt;
+  final bool clientMarkedComplete;
+  final bool technicianMarkedComplete;
 
   const ServiceRequest({
     required this.id,
@@ -29,7 +32,31 @@ class ServiceRequest extends Equatable {
     this.serviceCity,
     required this.createdAt,
     this.updatedAt,
+    this.startedAt,
+    this.clientMarkedComplete = false,
+    this.technicianMarkedComplete = false,
   });
+
+  ServiceRequest copyWith({String? status}) {
+    return ServiceRequest(
+      id: id,
+      userId: userId,
+      assignedTechnicianId: assignedTechnicianId,
+      problema: problema,
+      status: status ?? this.status,
+      urgency: urgency,
+      requestedSkills: requestedSkills,
+      latitude: latitude,
+      longitude: longitude,
+      addressText: addressText,
+      serviceCity: serviceCity,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      startedAt: startedAt,
+      clientMarkedComplete: clientMarkedComplete,
+      technicianMarkedComplete: technicianMarkedComplete,
+    );
+  }
 
   @override
   List<Object?> get props => [id, userId, problema, status, createdAt];

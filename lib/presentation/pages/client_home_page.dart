@@ -7,6 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
+import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/domain/entities/service_request.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
@@ -14,9 +15,11 @@ import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/profile_page.dart';
 import 'package:flutter_app/presentation/pages/requested_service_technicians_page.dart';
+import 'package:flutter_app/presentation/pages/service_map_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 class ClientHomePage extends StatefulWidget {
@@ -30,9 +33,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
   late final LocationCubit _locationCubit;
   int _selectedIndex = 0;
   int _misServicesRefreshToken = 0;
-  Future<List<ServiceRequest>>? _activeServicesFuture;
+  List<ServiceRequest>? _activeServices;
+  bool _activeServicesLoading = false;
   String? _activeServicesUserId;
   bool _isDark = false;
+  Timer? _locationTimer;
+  String? _activeRequestId;
 
   Color get _bg =>
       _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
@@ -57,9 +63,49 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
   @override
   void dispose() {
+    _locationTimer?.cancel();
+    sl<WebSocketService>().offLocationUpdated();
+    sl<WebSocketService>().offServiceStatusUpdated();
     sl<ThemeService>().removeListener(_onThemeChanged);
     _locationCubit.close();
     super.dispose();
+  }
+
+  void _startLocationTracking(
+    String userId,
+    String requestId,
+    String tenantId,
+  ) {
+    if (_activeRequestId == requestId) return;
+    _activeRequestId = requestId;
+    _locationTimer?.cancel();
+
+    sl<WebSocketService>().joinRequestRoom(requestId);
+
+    sl<WebSocketService>().onServiceStatusUpdated((data) {
+      final newStatus = data['status']?.toString() ?? '';
+      if (newStatus == 'COMPLETED' && mounted) {
+        _refreshActiveServices(userId);
+      }
+    });
+
+    _locationTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      try {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings:
+              const LocationSettings(accuracy: LocationAccuracy.high),
+        );
+        await sl<Dio>().patch(
+          '/service-requests/$requestId/update-location',
+          data: {
+            'userId': userId,
+            'latitude': pos.latitude,
+            'longitude': pos.longitude,
+          },
+          options: Options(headers: {'X-Tenant-ID': tenantId}),
+        );
+      } catch (_) {}
+    });
   }
 
   Future<void> _onCreateServiceRequest(
@@ -232,8 +278,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
             currentIndex: _selectedIndex,
             onTap: _onTabSelected,
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: AppColors.primary,
-            unselectedItemColor: AppColors.grey,
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home_outlined),
@@ -412,10 +456,15 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                FutureBuilder<List<ServiceRequest>>(
-                  future: _getActiveServicesFuture(user.id),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                Builder(
+                  builder: (context) {
+                    if (_activeServicesUserId != user.id) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) _loadActiveServices(user.id);
+                      });
+                    }
+
+                    if (_activeServicesLoading || _activeServices == null) {
                       return const Card(
                         child: Padding(
                           padding: EdgeInsets.all(16),
@@ -429,7 +478,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       );
                     }
 
-                    final requests = snapshot.data ?? [];
+                    final requests = _activeServices!;
 
                     if (requests.isEmpty) {
                       return Card(
@@ -451,8 +500,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       height: 200,
                       child: ListView.separated(
                         itemCount: requests.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 8),
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
                             _buildLatestServiceCard(
                               context,
@@ -483,30 +531,76 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Future<List<ServiceRequest>> _getActiveServicesFuture(String userId) {
-    if (_activeServicesFuture == null || _activeServicesUserId != userId) {
+  Future<void> _loadActiveServices(String userId) async {
+    if (_activeServicesLoading && _activeServicesUserId == userId) return;
+    setState(() {
       _activeServicesUserId = userId;
-      _activeServicesFuture = _buildActiveServicesFuture(userId);
+      _activeServicesLoading = true;
+    });
+
+    var locState = _locationCubit.state;
+    if (locState is! LocationLoaded) {
+      await _locationCubit.stream.firstWhere((s) => s is LocationLoaded);
+      locState = _locationCubit.state;
     }
-    return _activeServicesFuture!;
+    final tenantId = locState is LocationLoaded ? locState.serviceCity : null;
+
+    final requests = await _fetchRequestedServices(userId, tenantId: tenantId);
+
+    if (!mounted) return;
+
+    // Join WebSocket room for every active request so we receive status events.
+    for (final req in requests) {
+      sl<WebSocketService>().joinRequestRoom(req.id);
+    }
+
+    // Single handler: update status in-place when backend emits events.
+    sl<WebSocketService>().offServiceStatusUpdated();
+    sl<WebSocketService>().onServiceStatusUpdated((data) {
+      if (!mounted) return;
+      final requestId = data['requestId']?.toString() ?? '';
+      final newStatus = data['status']?.toString() ?? '';
+      if (requestId.isEmpty || newStatus.isEmpty) return;
+
+      setState(() {
+        final list = _activeServices;
+        if (list == null) return;
+        if (newStatus == 'COMPLETED' || newStatus == 'CANCELLED') {
+          list.removeWhere((r) => r.id == requestId);
+        } else {
+          final idx = list.indexWhere((r) => r.id == requestId);
+          if (idx >= 0) {
+            list[idx] = list[idx].copyWith(status: newStatus);
+          } else {
+            // New room we weren't aware of — just reload.
+            _loadActiveServices(userId);
+          }
+        }
+      });
+    });
+
+    // Location tracking for the first ON_THE_WAY / IN_PROGRESS request.
+    if (tenantId != null) {
+      final active = requests.where(
+        (r) => r.status == 'ON_THE_WAY' || r.status == 'IN_PROGRESS',
+      );
+      if (active.isNotEmpty) {
+        _startLocationTracking(userId, active.first.id, tenantId);
+      }
+    }
+
+    setState(() {
+      _activeServices = requests;
+      _activeServicesLoading = false;
+    });
   }
 
   void _refreshActiveServices(String userId) {
     setState(() {
       _activeServicesUserId = null;
-      _activeServicesFuture = null;
+      _activeServices = null;
     });
-  }
-
-  Future<List<ServiceRequest>> _buildActiveServicesFuture(String userId) async {
-    var state = _locationCubit.state;
-    if (state is! LocationLoaded) {
-      await _locationCubit.stream.firstWhere((s) => s is LocationLoaded);
-      state = _locationCubit.state;
-    }
-
-    final tenantId = state is LocationLoaded ? state.serviceCity : null;
-    return _fetchRequestedServices(userId, tenantId: tenantId);
+    _loadActiveServices(userId);
   }
 
   Widget _buildServiceCard(String title, IconData icon, Color color) {
@@ -547,76 +641,82 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
+  ServiceRequest _parseServiceRequest(Map<String, dynamic> json) {
+    return ServiceRequest(
+      id: json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      assignedTechnicianId: json['assignedTechnicianId']?.toString(),
+      problema: json['problema']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'UNKNOWN',
+      urgency: json['urgency']?.toString(),
+      requestedSkills: (json['requestedSkills'] is List)
+          ? (json['requestedSkills'] as List)
+                .map((skill) => skill.toString())
+                .toList()
+          : const [],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      addressText: json['addressText']?.toString(),
+      serviceCity: json['serviceCity']?.toString(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
+      startedAt: json['startedAt'] != null
+          ? DateTime.tryParse(json['startedAt'].toString())
+          : null,
+      clientMarkedComplete: json['clientMarkedComplete'] as bool? ?? false,
+      technicianMarkedComplete:
+          json['technicianMarkedComplete'] as bool? ?? false,
+    );
+  }
+
   Future<List<ServiceRequest>> _fetchRequestedServices(
     String userId, {
     String? tenantId,
   }) async {
-    try {
-      final response = await sl<Dio>().get(
-        '/service-requests',
-        queryParameters: {
-          'userId': userId,
-          'status': 'REQUESTED',
-          'page': 0,
-          'limit': 50,
-        },
-        options: tenantId != null && tenantId.isNotEmpty
-            ? Options(headers: {'X-Tenant-ID': tenantId})
-            : null,
-      );
+    final statuses = ['REQUESTED', 'ON_THE_WAY', 'IN_PROGRESS'];
+    final allRequests = <ServiceRequest>[];
+    final options = tenantId != null && tenantId.isNotEmpty
+        ? Options(headers: {'X-Tenant-ID': tenantId})
+        : null;
 
-      final data = response.data;
-      List<dynamic> list = [];
+    for (final status in statuses) {
+      try {
+        final response = await sl<Dio>().get(
+          '/service-requests',
+          queryParameters: {
+            'userId': userId,
+            'status': status,
+            'page': 0,
+            'limit': 50,
+          },
+          options: options,
+        );
 
-      if (data is Map<String, dynamic>) {
-        list = (data['requests'] ?? []) as List<dynamic>;
-      } else if (data is List) {
-        list = data;
-      }
+        final data = response.data;
+        List<dynamic> list = [];
+        if (data is Map<String, dynamic>) {
+          list = (data['requests'] ?? []) as List<dynamic>;
+        } else if (data is List) {
+          list = data;
+        }
 
-      final requests = list
-          .whereType<Map<String, dynamic>>()
-          .where(
-            (json) => json['status']?.toString().toUpperCase() == 'REQUESTED',
-          )
-          .map(
-            (json) => ServiceRequest(
-              id: json['id']?.toString() ?? '',
-              userId: json['userId']?.toString() ?? '',
-              assignedTechnicianId: json['assignedTechnicianId']?.toString(),
-              problema: json['problema']?.toString() ?? '',
-              status: json['status']?.toString() ?? 'UNKNOWN',
-              urgency: json['urgency']?.toString(),
-              requestedSkills: (json['requestedSkills'] is List)
-                  ? (json['requestedSkills'] as List)
-                        .map((skill) => skill.toString())
-                        .toList()
-                  : const [],
-              latitude: (json['latitude'] as num?)?.toDouble(),
-              longitude: (json['longitude'] as num?)?.toDouble(),
-              addressText: json['addressText']?.toString(),
-              serviceCity: json['serviceCity']?.toString(),
-              createdAt: json['createdAt'] != null
-                  ? DateTime.tryParse(json['createdAt'].toString()) ??
-                        DateTime.now()
-                  : DateTime.now(),
-              updatedAt: json['updatedAt'] != null
-                  ? DateTime.tryParse(json['updatedAt'].toString())
-                  : null,
-            ),
-          )
-          .toList();
-
-      requests.sort((a, b) {
-        final aDate = a.updatedAt ?? a.createdAt;
-        final bDate = b.updatedAt ?? b.createdAt;
-        return bDate.compareTo(aDate);
-      });
-
-      return requests;
-    } catch (_) {
-      return [];
+        allRequests.addAll(
+          list.whereType<Map<String, dynamic>>().map(_parseServiceRequest),
+        );
+      } catch (_) {}
     }
+
+    allRequests.sort((a, b) {
+      final aDate = a.updatedAt ?? a.createdAt;
+      final bDate = b.updatedAt ?? b.createdAt;
+      return bDate.compareTo(aDate);
+    });
+
+    return allRequests;
   }
 
   Widget _buildLatestServiceCard(
@@ -624,11 +724,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
     ServiceRequest request,
     String userId,
   ) {
-    final canOpenTechnicians = request.status.toUpperCase() == 'REQUESTED';
     final status = request.status.toUpperCase();
+    final isRequested = status == 'REQUESTED';
+    final isOnTheWay = status == 'ON_THE_WAY';
+    final isInProgress = status == 'IN_PROGRESS';
+    final isActive = isOnTheWay || isInProgress;
+
     final label = switch (status) {
       'REQUESTED' => 'Solicitada',
-      'ASSIGNED' => 'Asignada',
       'ON_THE_WAY' => 'En camino',
       'IN_PROGRESS' => 'En progreso',
       'COMPLETED' => 'Completada',
@@ -637,20 +740,48 @@ class _ClientHomePageState extends State<ClientHomePage> {
       _ => request.status,
     };
 
+    final labelColor = isInProgress ? AppColors.success : AppColors.primary;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: canOpenTechnicians
+        onTap: isRequested
+            ? () {
+                Navigator.of(context)
+                    .push<bool>(
+                      MaterialPageRoute(
+                        builder: (_) => RequestedServiceTechniciansPage(
+                          requestId: request.id,
+                          clientUserId: userId,
+                          tenantId: request.serviceCity ?? '',
+                          requestLatitude: request.latitude,
+                          requestLongitude: request.longitude,
+                        ),
+                      ),
+                    )
+                    .then((chosen) {
+                  if (chosen == true) _refreshActiveServices(userId);
+                });
+              }
+            : isActive
             ? () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => RequestedServiceTechniciansPage(
+                    builder: (_) => ServiceMapPage(
                       requestId: request.id,
+                      technicianId: request.assignedTechnicianId ?? '',
+                      tenantId: request.serviceCity ?? '',
+                      clientLatitude: request.latitude ?? 0,
+                      clientLongitude: request.longitude ?? 0,
+                      clientInfo: const {},
+                      serviceStatus: request.status,
+                      startedAt: request.startedAt,
+                      technicianMarkedComplete: request.technicianMarkedComplete,
+                      clientMarkedComplete: request.clientMarkedComplete,
+                      isClientView: true,
                       clientUserId: userId,
-                      requestLatitude: request.latitude,
-                      requestLongitude: request.longitude,
                     ),
                   ),
                 );
@@ -669,18 +800,22 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
+                      color: labelColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       label,
-                      style: const TextStyle(
-                        color: AppColors.primary,
+                      style: TextStyle(
+                        color: labelColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  if (canOpenTechnicians) ...[
+                  if (isInProgress && request.startedAt != null) ...[
+                    const SizedBox(width: 8),
+                    _ElapsedTimer(startedAt: request.startedAt!),
+                  ],
+                  if (isRequested || isActive) ...[
                     const Spacer(),
                     Icon(Icons.chevron_right, color: _txtSec),
                   ],
@@ -760,6 +895,59 @@ class _ClientHomePageState extends State<ClientHomePage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ElapsedTimer extends StatefulWidget {
+  final DateTime startedAt;
+  const _ElapsedTimer({required this.startedAt});
+
+  @override
+  State<_ElapsedTimer> createState() => _ElapsedTimerState();
+}
+
+class _ElapsedTimerState extends State<_ElapsedTimer> {
+  late int _seconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _seconds = DateTime.now().difference(widget.startedAt).inSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _seconds++);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _format(int s) {
+    final m = s ~/ 60;
+    final sec = s % 60;
+    return '${m.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.timer_outlined, size: 14, color: AppColors.success),
+        const SizedBox(width: 3),
+        Text(
+          _format(_seconds),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.success,
+          ),
+        ),
+      ],
     );
   }
 }

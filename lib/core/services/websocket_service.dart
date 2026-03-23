@@ -7,6 +7,7 @@ class WebSocketService {
 
   String? _pendingTechnicianId;
   String? _pendingTenantId;
+  final Set<String> _pendingRequestRooms = {};
 
   String get _wsBaseUrl {
     const url = AppConstants.baseUrl;
@@ -21,7 +22,6 @@ class WebSocketService {
     if (tenantId != null) _pendingTenantId = tenantId;
 
     if (_socket != null && _socket!.connected) {
-      // Already connected — join room immediately if credentials are new
       if (_pendingTechnicianId != null && _pendingTenantId != null) {
         _emitJoinTechnicianRoom();
       }
@@ -41,6 +41,7 @@ class WebSocketService {
       if (_pendingTechnicianId != null && _pendingTenantId != null) {
         _emitJoinTechnicianRoom();
       }
+      _emitPendingRequestRooms();
     });
 
     _socket!.onReconnect((_) {
@@ -48,6 +49,7 @@ class WebSocketService {
       if (_pendingTechnicianId != null && _pendingTenantId != null) {
         _emitJoinTechnicianRoom();
       }
+      _emitPendingRequestRooms();
     });
 
     _socket!.onDisconnect((_) {
@@ -59,6 +61,13 @@ class WebSocketService {
     });
 
     _socket!.connect();
+  }
+
+  void _emitPendingRequestRooms() {
+    for (final requestId in _pendingRequestRooms) {
+      _socket?.emit('join_request_room', {'requestId': requestId});
+      AppLogger.info('WebSocket joined request room: $requestId');
+    }
   }
 
   void _emitJoinTechnicianRoom() {
@@ -74,6 +83,7 @@ class WebSocketService {
   void disconnect() {
     _pendingTechnicianId = null;
     _pendingTenantId = null;
+    _pendingRequestRooms.clear();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
@@ -88,9 +98,11 @@ class WebSocketService {
   }
 
   void joinRequestRoom(String requestId) {
-    _socket?.emit('join_request_room', {
-      'requestId': requestId,
-    });
+    _pendingRequestRooms.add(requestId);
+    if (_socket?.connected == true) {
+      _socket!.emit('join_request_room', {'requestId': requestId});
+      AppLogger.info('WebSocket joined request room: $requestId');
+    }
   }
 
   void onNewServiceRequest(void Function(Map<String, dynamic>) handler) {
@@ -119,6 +131,48 @@ class WebSocketService {
 
   void offTechnicianAccepted() {
     _socket?.off('technician_accepted');
+  }
+
+  void onLocationUpdated(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('location_updated', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offLocationUpdated() {
+    _socket?.off('location_updated');
+  }
+
+  void onServiceStatusUpdated(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('service_status_updated', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offServiceStatusUpdated() {
+    _socket?.off('service_status_updated');
+  }
+
+  void onTechnicianStatsUpdated(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('technician_stats_updated', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offTechnicianStatsUpdated() {
+    _socket?.off('technician_stats_updated');
   }
 
   bool get isConnected => _socket?.connected ?? false;
