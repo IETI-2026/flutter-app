@@ -102,6 +102,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     super.initState();
     _locationCubit = sl<LocationCubit>()..fetchLocation();
     _initProfile();
+    // Re-fetch once the correct tenant is resolved from the user's location,
+    // so servicesCount is read from the tenant schema instead of public.
+    _locationCubit.stream
+        .firstWhere((s) => s is LocationLoaded)
+        .then((_) { if (mounted) _initProfile(); })
+        .catchError((_) {});
     _isDark = sl<ThemeService>().isDark;
     sl<ThemeService>().addListener(_onThemeChanged);
   }
@@ -193,6 +199,11 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           }
         }
       });
+      // Refresh servicesCount from backend when a service completes so it
+      // stays in sync regardless of which schema was read at startup.
+      if (newStatus == 'COMPLETED') {
+        _initProfile();
+      }
     });
   }
 
