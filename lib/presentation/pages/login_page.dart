@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
+import 'package:flutter_app/presentation/widgets/animated_role_toggle.dart';
 import 'package:flutter_app/presentation/widgets/google_auth_button.dart';
 import 'package:flutter_app/presentation/widgets/primary_button.dart';
 import 'package:flutter_app/presentation/widgets/custom_text_field.dart';
@@ -17,32 +18,21 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _LoginPageState extends State<LoginPage> {
+  int _roleIndex = 0;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  String get _selectedRole => _tabController.index == 0 ? 'client' : 'provider';
+  String get _selectedRole => _roleIndex == 0 ? 'client' : 'provider';
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
@@ -92,75 +82,114 @@ class _LoginPageState extends State<LoginPage>
           return Container(
             width: size.width,
             height: size.height,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primary.withOpacity(0.1),
-                  Colors.white,
-                  Colors.white,
-                ],
-              ),
-            ),
+            color: AppColors.backgroundLight,
             child: SafeArea(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-
-                      FadeInDown(
-                        duration: const Duration(milliseconds: 600),
-                        child: _buildLogoSection(),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      FadeInDown(
-                        delay: const Duration(milliseconds: 200),
-                        child: Text(
-                          '¡Hola de nuevo!',
-                          style: GoogleFonts.poppins(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FadeInDown(
+                      duration: const Duration(milliseconds: 520),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              AppColors.backgroundDark,
+                              Color.lerp(
+                                    AppColors.backgroundDark,
+                                    AppColors.primary,
+                                    0.35,
+                                  )!,
+                              AppColors.primary.withValues(alpha: 0.55),
+                              AppColors.white,
+                            ],
+                            stops: const [0.0, 0.38, 0.72, 1.0],
                           ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      FadeInDown(
-                        delay: const Duration(milliseconds: 300),
-                        child: Text(
-                          'Ingresa para continuar',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w400,
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(36),
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.backgroundDark.withValues(
+                                alpha: 0.22,
+                              ),
+                              blurRadius: 28,
+                              offset: const Offset(0, 14),
+                            ),
+                          ],
                         ),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Role Tabs
-                      FadeInUp(
-                        delay: const Duration(milliseconds: 400),
-                        child: _buildRoleTabs(),
-                      ),
-
-                      const SizedBox(height: 32),
-
-                      // Login Form
-                      Form(
-                        key: _formKey,
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 44),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _buildLogoSection(),
+                            const SizedBox(height: 28),
+                            Text(
+                              '¡Hola de nuevo!',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.white,
+                                height: 1.15,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Ingresa para continuar',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                color: AppColors.white.withValues(alpha: 0.88),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Transform.translate(
+                      offset: const Offset(0, -28),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(26),
+                            border: Border.all(
+                              color: AppColors.greyLight.withValues(alpha: 0.65),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.textPrimary.withValues(
+                                  alpha: 0.07,
+                                ),
+                                blurRadius: 36,
+                                offset: const Offset(0, 18),
+                              ),
+                            ],
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                FadeInUp(
+                                  delay: const Duration(milliseconds: 280),
+                                  child: AnimatedRoleToggle(
+                                    selectedIndex: _roleIndex,
+                                    onChanged: (i) =>
+                                        setState(() => _roleIndex = i),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 28),
+
+                      // Login Form fields
                             FadeInUp(
                               delay: const Duration(milliseconds: 500),
                               child: Column(
@@ -381,11 +410,13 @@ class _LoginPageState extends State<LoginPage>
                             ),
 
                             const SizedBox(height: 24),
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -404,11 +435,11 @@ class _LoginPageState extends State<LoginPage>
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
-          boxShadow: [
+            boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 25,
-              offset: const Offset(0, 12),
+              color: AppColors.black.withValues(alpha: 0.12),
+              blurRadius: 28,
+              offset: const Offset(0, 14),
             ),
           ],
         ),
@@ -423,77 +454,9 @@ class _LoginPageState extends State<LoginPage>
     );
   }
 
-  Widget _buildRoleTabs() {
-    return Container(
-      height: 55,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(4),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Colors.white,
-        unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Cliente'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.work_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Profesional'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildGoogleButton(bool isLoading) {
     return GoogleAuthButton(
-      onPressed: _handleGoogleLogin,
+      onPressed: isLoading ? null : _handleGoogleLogin,
       isLoading: isLoading,
     );
   }

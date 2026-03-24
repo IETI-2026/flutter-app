@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
+import 'package:flutter_app/presentation/widgets/animated_role_toggle.dart';
 import 'package:flutter_app/presentation/widgets/google_auth_button.dart';
 import 'package:flutter_app/presentation/widgets/primary_button.dart';
 import 'package:flutter_app/presentation/widgets/custom_text_field.dart';
@@ -17,9 +18,8 @@ class SignUpPage extends StatefulWidget {
   State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _SignUpPageState extends State<SignUpPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _SignUpPageState extends State<SignUpPage> {
+  int _roleIndex = 0;
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -29,7 +29,8 @@ class _SignUpPageState extends State<SignUpPage>
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptedTerms = false;
-  String _selectedRole = 'client';
+
+  String get _selectedRole => _roleIndex == 0 ? 'client' : 'provider';
 
   static const List<String> _termsItems = [
     'Aceptas los términos y condiciones de uso de CameYo para crear una cuenta.',
@@ -40,19 +41,7 @@ class _SignUpPageState extends State<SignUpPage>
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _selectedRole = _tabController.index == 0 ? 'client' : 'provider';
-      });
-    });
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -182,85 +171,130 @@ class _SignUpPageState extends State<SignUpPage>
           return Container(
             width: size.width,
             height: size.height,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppColors.primary.withOpacity(0.1),
-                  Colors.white,
-                  Colors.white,
-                ],
-              ),
-            ),
+            color: AppColors.backgroundLight,
             child: SafeArea(
-              child: Column(
-                children: [
-                  // Back Button
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back,
-                            color: AppColors.textPrimary,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FadeInDown(
+                      duration: const Duration(milliseconds: 520),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  AppColors.backgroundDark,
+                                  Color.lerp(
+                                        AppColors.backgroundDark,
+                                        AppColors.primary,
+                                        0.35,
+                                      )!,
+                                  AppColors.primary.withValues(alpha: 0.55),
+                                  AppColors.white,
+                                ],
+                                stops: const [0.0, 0.38, 0.72, 1.0],
+                              ),
+                              borderRadius: const BorderRadius.vertical(
+                                bottom: Radius.circular(36),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.backgroundDark.withValues(
+                                    alpha: 0.22,
+                                  ),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 14),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.fromLTRB(24, 12, 24, 44),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 40),
+                                Text(
+                                  'Crear cuenta',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.white,
+                                    height: 1.15,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Regístrate para comenzar',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15,
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.88,
+                                    ),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
+                          Positioned(
+                            top: 0,
+                            left: 4,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: AppColors.white,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
+                    Transform.translate(
+                      offset: const Offset(0, -28),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 20),
-
-                            // Title
-                            FadeInDown(
-                              child: Text(
-                                'Crear Cuenta',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          padding:
+                              const EdgeInsets.fromLTRB(22, 28, 22, 28),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(26),
+                            border: Border.all(
+                              color: AppColors.greyLight.withValues(
+                                alpha: 0.65,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            FadeInDown(
-                              delay: const Duration(milliseconds: 100),
-                              child: Text(
-                                'Regístrate para comenzar',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w400,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.textPrimary.withValues(
+                                  alpha: 0.07,
                                 ),
+                                blurRadius: 36,
+                                offset: const Offset(0, 18),
                               ),
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Role Tabs
-                            FadeInUp(
-                              delay: const Duration(milliseconds: 200),
-                              child: _buildRoleTabs(),
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Sign Up Form
-                            Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                            ],
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                FadeInUp(
+                                  delay: const Duration(milliseconds: 200),
+                                  child: AnimatedRoleToggle(
+                                    selectedIndex: _roleIndex,
+                                    onChanged: (i) =>
+                                        setState(() => _roleIndex = i),
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
                                   FadeInUp(
                                     delay: const Duration(milliseconds: 300),
                                     child: _buildFieldLabel('Nombre Completo'),
@@ -531,14 +565,11 @@ class _SignUpPageState extends State<SignUpPage>
                                 ],
                               ),
                             ),
-
-                            const SizedBox(height: 24),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -557,74 +588,6 @@ class _SignUpPageState extends State<SignUpPage>
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-      ),
-    );
-  }
-
-  Widget _buildRoleTabs() {
-    return Container(
-      height: 55,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(4),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary.withOpacity(0.9)],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Colors.white,
-        unselectedLabelColor: AppColors.textSecondary,
-        labelStyle: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: GoogleFonts.poppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        dividerColor: Colors.transparent,
-        tabs: const [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Cliente'),
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.work_outline, size: 20),
-                SizedBox(width: 8),
-                Text('Profesional'),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
