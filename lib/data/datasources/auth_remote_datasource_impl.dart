@@ -17,18 +17,37 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({required this.dio, required this.googleSignIn});
 
   String _extractErrorMessage(dynamic data, String fallback) {
-    if (data is Map<String, dynamic>) {
-      final message = data['message'];
-      if (message is List && message.isNotEmpty) {
-        return message.join(' ');
-      }
-      if (message is String && message.trim().isNotEmpty) {
-        return message;
-      }
-    }
+    if (data == null) return fallback;
 
     if (data is String && data.trim().isNotEmpty) {
-      return data;
+      return data.trim();
+    }
+
+    if (data is Map) {
+      final map = Map<String, dynamic>.from(data);
+      final message = map['message'];
+      if (message is List && message.isNotEmpty) {
+        return message.map((e) => e.toString()).join('. ');
+      }
+      if (message is String && message.trim().isNotEmpty) {
+        return message.trim();
+      }
+
+      final errors = map['errors'];
+      if (errors is Map) {
+        final parts = <String>[];
+        for (final entry in errors.entries) {
+          final v = entry.value;
+          if (v is List) {
+            parts.addAll(v.map((e) => e.toString()));
+          } else if (v != null) {
+            parts.add(v.toString());
+          }
+        }
+        if (parts.isNotEmpty) {
+          return parts.join('. ');
+        }
+      }
     }
 
     return fallback;
@@ -85,7 +104,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message = e.response!.data['message'] ?? 'Error desconocido';
+        final message = _extractErrorMessage(
+          e.response!.data,
+          'Error desconocido',
+        );
 
         switch (statusCode) {
           case 401:
@@ -111,20 +133,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
     required String fullName,
-    required String role,
     String? phoneNumber,
   }) async {
     try {
       AppLogger.info('Sign up attempt for email: $email');
 
+      // El DTO de Nest no admite `role`; el perfil cliente/profesional se define en la app.
       final response = await dio.post(
         '${AppConstants.authEndpoint}/signup',
         data: {
           'email': email,
           'password': password,
           'fullName': fullName,
-          'role': role,
-          'phoneNumber': ?phoneNumber,
+          if (phoneNumber != null && phoneNumber.trim().isNotEmpty)
+            'phoneNumber': phoneNumber.trim(),
         },
       );
 
@@ -139,7 +161,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message = e.response!.data['message'] ?? 'Error desconocido';
+        final message = _extractErrorMessage(
+          e.response!.data,
+          'Error desconocido',
+        );
 
         switch (statusCode) {
           case 409:
@@ -247,8 +272,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message =
-            e.response!.data['message'] ?? 'Error al refrescar token';
+        final message = _extractErrorMessage(
+          e.response!.data,
+          'Error al refrescar token',
+        );
 
         if (statusCode == 401) {
           throw AuthException(message);
@@ -284,8 +311,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message =
-            e.response!.data['message'] ?? 'Error al obtener usuario';
+        final message = _extractErrorMessage(
+          e.response!.data,
+          'Error al obtener usuario',
+        );
 
         if (statusCode == 401) {
           throw AuthException(message);
@@ -347,15 +376,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (e.response != null) {
         final statusCode = e.response!.statusCode;
-        final message =
-            e.response!.data['message'] ?? 'Error al subir la imagen';
+        final message = _extractErrorMessage(
+          e.response!.data,
+          'Error al subir la imagen',
+        );
 
         if (statusCode == 400) {
-          throw ValidationException(message is List ? message.join(' ') : message.toString());
+          throw ValidationException(message);
         } else if (statusCode == 401) {
-          throw AuthException(message.toString());
+          throw AuthException(message);
         } else {
-          throw ServerException(message.toString());
+          throw ServerException(message);
         }
       } else {
         throw NetworkException('Sin conexión a internet');

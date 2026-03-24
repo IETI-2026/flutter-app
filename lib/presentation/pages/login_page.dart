@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
-import 'package:flutter_app/presentation/widgets/animated_role_toggle.dart';
+import 'package:flutter_app/presentation/models/auth_entry_role.dart';
 import 'package:flutter_app/presentation/widgets/google_auth_button.dart';
 import 'package:flutter_app/presentation/widgets/primary_button.dart';
 import 'package:flutter_app/presentation/widgets/custom_text_field.dart';
@@ -12,14 +12,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, required this.selectedRole});
+
+  final AuthEntryRole selectedRole;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
-  int _roleIndex = 0;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -32,7 +33,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  String get _selectedRole => _roleIndex == 0 ? 'client' : 'provider';
+  String get _selectedRole => widget.selectedRole.apiValue;
 
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
@@ -91,64 +92,85 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     FadeInDown(
                       duration: const Duration(milliseconds: 520),
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              AppColors.backgroundDark,
-                              Color.lerp(
-                                    AppColors.backgroundDark,
-                                    AppColors.primary,
-                                    0.35,
-                                  )!,
-                              AppColors.primary.withValues(alpha: 0.55),
-                              AppColors.white,
-                            ],
-                            stops: const [0.0, 0.38, 0.72, 1.0],
-                          ),
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(36),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.backgroundDark.withValues(
-                                alpha: 0.22,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: widget.selectedRole.heroGradientColors,
+                                stops: const [0.0, 0.38, 0.72, 1.0],
                               ),
-                              blurRadius: 28,
-                              offset: const Offset(0, 14),
+                              borderRadius: const BorderRadius.vertical(
+                                bottom: Radius.circular(36),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.backgroundDark.withValues(
+                                    alpha: 0.22,
+                                  ),
+                                  blurRadius: 28,
+                                  offset: const Offset(0, 14),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 44),
-                        child: Column(
-                          children: [
-                            _buildLogoSection(),
-                            const SizedBox(height: 28),
-                            Text(
-                              '¡Hola de nuevo!',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w700,
+                            padding: const EdgeInsets.fromLTRB(24, 44, 24, 44),
+                            child: Column(
+                              children: [
+                                _buildLogoSection(),
+                                const SizedBox(height: 28),
+                                Text(
+                                  widget.selectedRole.loginTitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.white,
+                                    height: 1.15,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  widget.selectedRole.loginSubtitle,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.95,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Ingresa para continuar',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: AppColors.white.withValues(
+                                      alpha: 0.86,
+                                    ),
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            top: 0,
+                            left: 4,
+                            child: IconButton(
+                              icon: const Icon(
+                                Icons.arrow_back_rounded,
                                 color: AppColors.white,
-                                height: 1.15,
                               ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Ingresa para continuar',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                color: AppColors.white.withValues(alpha: 0.88),
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     Transform.translate(
@@ -180,14 +202,34 @@ class _LoginPageState extends State<LoginPage> {
                               children: [
                                 FadeInUp(
                                   delay: const Duration(milliseconds: 280),
-                                  child: AnimatedRoleToggle(
-                                    selectedIndex: _roleIndex,
-                                    onChanged: (i) =>
-                                        setState(() => _roleIndex = i),
+                                  child: _buildRoleBenefits(),
+                                ),
+                                FadeInUp(
+                                  delay: const Duration(milliseconds: 340),
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context),
+                                      style: TextButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: const Size(0, 0),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: Text(
+                                        'Cambiar tipo de cuenta',
+                                        style: GoogleFonts.poppins(
+                                          color: widget.selectedRole.accent,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
 
-                                const SizedBox(height: 28),
+                                const SizedBox(height: 24),
 
                       // Login Form fields
                             FadeInUp(
@@ -291,7 +333,7 @@ class _LoginPageState extends State<LoginPage> {
                                   child: Text(
                                     '¿Olvidaste tu contraseña?',
                                     style: GoogleFonts.poppins(
-                                      color: AppColors.primary,
+                                      color: widget.selectedRole.accent,
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -309,6 +351,7 @@ class _LoginPageState extends State<LoginPage> {
                                 text: 'Iniciar Sesión',
                                 onPressed: isLoading ? null : _handleLogin,
                                 isLoading: isLoading,
+                                backgroundColor: widget.selectedRole.accent,
                               ),
                             ),
 
@@ -388,7 +431,11 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   TextButton(
                                     onPressed: () {
-                                      Navigator.pushNamed(context, '/signup');
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/signup',
+                                        arguments: widget.selectedRole,
+                                      );
                                     },
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
@@ -399,7 +446,7 @@ class _LoginPageState extends State<LoginPage> {
                                     child: Text(
                                       'Regístrate',
                                       style: GoogleFonts.poppins(
-                                        color: AppColors.primary,
+                                        color: widget.selectedRole.accent,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 14,
                                       ),
@@ -423,6 +470,52 @@ class _LoginPageState extends State<LoginPage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildRoleBenefits() {
+    final accent = widget.selectedRole.accent;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Como ${widget.selectedRole.shortLabel.toLowerCase()}',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...widget.selectedRole.benefits.map(
+          (line) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: 20,
+                  color: accent,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    line,
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      height: 1.35,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

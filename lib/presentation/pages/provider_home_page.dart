@@ -569,7 +569,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             if (!mounted) {
               return;
             }
-            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+            Navigator.pushNamedAndRemoveUntil(context, '/auth-role', (_) => false);
           });
           return Scaffold(
             backgroundColor: _bg,
@@ -1620,7 +1620,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               context.read<AuthBloc>().add(const LogoutEvent());
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/login',
+                '/auth-role',
                 (_) => false,
               );
             },

@@ -4,6 +4,8 @@ import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
+import 'package:flutter_app/presentation/models/auth_entry_role.dart';
+import 'package:flutter_app/presentation/pages/auth_role_selection_page.dart';
 import 'package:flutter_app/presentation/pages/login_page.dart';
 import 'package:flutter_app/presentation/pages/signup_page.dart';
 import 'package:flutter_app/presentation/pages/splash_screen.dart';
@@ -33,8 +35,19 @@ class CameYoApp extends StatelessWidget {
           initialRoute: '/',
           routes: {
             '/': (context) => const SplashScreen(),
-            '/login': (context) => const LoginPage(),
-            '/signup': (context) => const SignUpPage(),
+            '/auth-role': (context) => const AuthRoleSelectionPage(),
+            '/login': (context) {
+              final arg = ModalRoute.of(context)?.settings.arguments;
+              final role =
+                  arg is AuthEntryRole ? arg : AuthEntryRole.client;
+              return LoginPage(selectedRole: role);
+            },
+            '/signup': (context) {
+              final arg = ModalRoute.of(context)?.settings.arguments;
+              final role =
+                  arg is AuthEntryRole ? arg : AuthEntryRole.client;
+              return SignUpPage(selectedRole: role);
+            },
             '/client-home': (context) => const ClientHomePage(),
             '/client-payments': (context) => const ClientPaymentsPage(),
             '/provider-home': (context) => const ProviderHomePage(),

@@ -342,7 +342,7 @@ class _ProfilePageState extends State<ProfilePage> {
               context.read<AuthBloc>().add(const LogoutEvent());
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/login',
+                '/auth-role',
                 (_) => false,
               );
             },

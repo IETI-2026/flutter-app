@@ -33,6 +33,8 @@ class _PrimaryButtonState extends State<PrimaryButton> {
   @override
   Widget build(BuildContext context) {
     final base = widget.backgroundColor ?? AppColors.primary;
+    final gradientEnd =
+        base == AppColors.secondary ? AppColors.secondaryDark : AppColors.primaryDark;
     final enabled = !widget.isLoading && widget.onPressed != null;
 
     return AnimatedScale(
@@ -54,7 +56,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
               end: Alignment.bottomRight,
               colors: [
                 base,
-                Color.lerp(base, AppColors.primaryDark, 0.35)!,
+                Color.lerp(base, gradientEnd, 0.35)!,
               ],
             ),
             borderRadius: BorderRadius.circular(16),

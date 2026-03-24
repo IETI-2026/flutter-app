@@ -3,6 +3,8 @@ import 'package:flutter_app/core/error/exceptions.dart';
 import 'package:flutter_app/core/error/failures.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
+import 'package:flutter_app/data/models/auth_response_model.dart';
+import 'package:flutter_app/data/models/user_model.dart';
 import 'package:flutter_app/domain/entities/auth_response.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
@@ -57,16 +59,36 @@ class AuthRepositoryImpl implements AuthRepository {
         email: email,
         password: password,
         fullName: fullName,
-        role: role,
         phoneNumber: phoneNumber,
       );
 
-      await localDataSource.saveAccessToken(authResponse.accessToken);
-      await localDataSource.saveRefreshToken(authResponse.refreshToken);
-      await localDataSource.saveUserRole(authResponse.user.role);
-      await localDataSource.saveUserData(authResponse.user);
+      final u = authResponse.user;
+      final storedUser = UserModel(
+        id: u.id,
+        email: u.email,
+        fullName: u.fullName,
+        phoneNumber: u.phoneNumber,
+        documentId: u.documentId,
+        profilePhotoUrl: u.profilePhotoUrl,
+        role: role,
+        status: u.status,
+        emailVerified: u.emailVerified,
+        phoneVerified: u.phoneVerified,
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt,
+      );
+      final merged = AuthResponseModel(
+        accessToken: authResponse.accessToken,
+        refreshToken: authResponse.refreshToken,
+        user: storedUser,
+      );
 
-      return Right(authResponse);
+      await localDataSource.saveAccessToken(merged.accessToken);
+      await localDataSource.saveRefreshToken(merged.refreshToken);
+      await localDataSource.saveUserRole(role);
+      await localDataSource.saveUserData(storedUser);
+
+      return Right(merged);
     } on ConflictException catch (e) {
       return Left(ConflictFailure(e.message));
     } on ValidationException catch (e) {

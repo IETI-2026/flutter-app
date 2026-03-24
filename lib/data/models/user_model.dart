@@ -16,15 +16,35 @@ class UserModel extends User {
     super.lastLoginAt,
   });
 
+  /// API Nest puede enviar `role` o `roles: ["USER","PROVIDER",...]`.
+  static String _roleFromJson(Map<String, dynamic> json) {
+    final direct = json['role'];
+    if (direct is String && direct.trim().isNotEmpty) {
+      return direct.trim();
+    }
+    final roles = json['roles'];
+    if (roles is List) {
+      for (final r in roles) {
+        final s = r.toString().toUpperCase();
+        if (s.contains('PROVIDER')) return 'provider';
+      }
+      for (final r in roles) {
+        final s = r.toString().toUpperCase();
+        if (s.contains('CLIENT')) return 'client';
+      }
+    }
+    return 'client';
+  }
+
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? '',
       email: json['email'] ?? '',
-      fullName: json['fullName'] ?? '',
+      fullName: json['fullName'] ?? json['name'] ?? '',
       phoneNumber: json['phoneNumber'],
       documentId: json['documentId'],
       profilePhotoUrl: json['profilePhotoUrl'],
-      role: json['role'] ?? 'client',
+      role: _roleFromJson(json),
       status: json['status'] ?? 'ACTIVE',
       emailVerified: json['emailVerified'] ?? false,
       phoneVerified: json['phoneVerified'] ?? false,
