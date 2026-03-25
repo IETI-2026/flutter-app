@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     if (accessToken == null || accessToken.isEmpty) {
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(context, '/auth-role');
       return;
     }
 

@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class GoogleAuthButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final bool isLoading;
-  final String text;
-
+/// Estilo cercano al botón GSI Material (fondo oscuro, borde, icono multicolor SVG).
+class GoogleAuthButton extends StatefulWidget {
   const GoogleAuthButton({
     super.key,
     required this.onPressed,
@@ -14,72 +11,139 @@ class GoogleAuthButton extends StatelessWidget {
     this.text = 'Continuar con Google',
   });
 
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  final String text;
+
+  static const Color _gsiBg = Color(0xFF131314);
+  static const Color _gsiBorder = Color(0xFF8E918F);
+  static const Color _gsiText = Color(0xFFE3E3E3);
+
+  @override
+  State<GoogleAuthButton> createState() => _GoogleAuthButtonState();
+}
+
+class _GoogleAuthButtonState extends State<GoogleAuthButton> {
+  bool _hovering = false;
+
+  static const String _googleSvg = '''
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  <path fill="none" d="M0 0h48v48H0z"/>
+</svg>
+''';
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.greyLight, width: 1.2),
-          boxShadow: [
+    final enabled = widget.onPressed != null && !widget.isLoading;
+    final bg = enabled
+        ? GoogleAuthButton._gsiBg
+        : const Color(0xFF131314).withValues(alpha: 0.38);
+    final borderColor = enabled
+        ? GoogleAuthButton._gsiBorder
+        : GoogleAuthButton._gsiBorder.withValues(alpha: 0.12);
+    final contentOpacity = enabled ? 1.0 : 0.38;
+
+    final hoverShadow = _hovering && enabled
+        ? [
             BoxShadow(
-              color: AppColors.textPrimary.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: const Color(0xFF3C4043).withValues(alpha: 0.30),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
             ),
-          ],
+            BoxShadow(
+              color: const Color(0xFF3C4043).withValues(alpha: 0.15),
+              blurRadius: 3,
+              spreadRadius: 1,
+              offset: const Offset(0, 1),
+            ),
+          ]
+        : const <BoxShadow>[];
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 218),
+        curve: Curves.easeOut,
+        width: double.infinity,
+        height: 48,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: borderColor, width: 1),
+          boxShadow: hoverShadow,
         ),
-        child: OutlinedButton(
-          onPressed: isLoading ? null : onPressed,
-          style: OutlinedButton.styleFrom(
-            side: BorderSide.none,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            backgroundColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-          child: isLoading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.3,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/icons/google_logo.png',
-                      width: 22,
-                      height: 22,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.g_mobiledata_rounded,
-                          color: AppColors.google,
-                          size: 28,
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      text,
-                      style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                        letterSpacing: 0.1,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: enabled ? widget.onPressed : null,
+            borderRadius: BorderRadius.circular(20),
+            splashFactory: InkRipple.splashFactory,
+            overlayColor: WidgetStateProperty.resolveWith((states) {
+              if (!enabled) return null;
+              if (states.contains(WidgetState.pressed)) {
+                return Colors.white.withValues(alpha: 0.12);
+              }
+              if (states.contains(WidgetState.hovered) ||
+                  states.contains(WidgetState.focused)) {
+                return Colors.white.withValues(alpha: 0.08);
+              }
+              return null;
+            }),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: widget.isLoading
+                  ? Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            GoogleAuthButton._gsiText.withValues(
+                              alpha: contentOpacity,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Opacity(
+                      opacity: contentOpacity,
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: SvgPicture.string(
+                              _googleSvg,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              widget.text,
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.roboto(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.25,
+                                color: GoogleAuthButton._gsiText,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+            ),
+          ),
         ),
       ),
     );

@@ -206,7 +206,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
             if (!mounted) {
               return;
             }
-            Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+            Navigator.pushNamedAndRemoveUntil(context, '/auth-role', (_) => false);
           });
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
