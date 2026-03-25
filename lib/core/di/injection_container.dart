@@ -283,7 +283,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
 
   sl.registerFactory(
-    () => LocationCubit(geocodingDataSource: sl(), tenantService: sl()),
+    () => LocationCubit(geocodingDataSource: sl(), tenantService: sl(), dio: sl()),
   );
 
   sl.registerFactory(

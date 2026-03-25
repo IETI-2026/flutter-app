@@ -10,6 +10,7 @@ import 'package:flutter_app/core/utils/logger.dart';
 class RequestedServiceTechniciansPage extends StatefulWidget {
   final String requestId;
   final String clientUserId;
+  final String tenantId;
   final double? requestLatitude;
   final double? requestLongitude;
 
@@ -17,6 +18,7 @@ class RequestedServiceTechniciansPage extends StatefulWidget {
     super.key,
     required this.requestId,
     required this.clientUserId,
+    required this.tenantId,
     this.requestLatitude,
     this.requestLongitude,
   });
@@ -168,14 +170,7 @@ class _RequestedServiceTechniciansPageState
         },
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Técnico contratado exitosamente'),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } on DioException catch (e) {
       if (!mounted) return;
       final msg = e.response?.data is Map<String, dynamic>

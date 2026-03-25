@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
@@ -7,10 +8,12 @@ import 'package:geolocator/geolocator.dart';
 class LocationCubit extends Cubit<LocationState> {
   final GeocodingRemoteDataSource geocodingDataSource;
   final TenantService tenantService;
+  final Dio dio;
 
   LocationCubit({
     required this.geocodingDataSource,
     required this.tenantService,
+    required this.dio,
   }) : super(const LocationInitial());
 
   Future<void> fetchLocation() async {
@@ -66,6 +69,16 @@ class LocationCubit extends Cubit<LocationState> {
           serviceCity: tenant,
         ),
       );
+
+      try {
+        await dio.patch(
+          '/users/me/location',
+          data: {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          },
+        );
+      } catch (_) {}
     } catch (e) {
       emit(LocationError(message: e.toString()));
     }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:dio/dio.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/core/utils/name_utils.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
@@ -14,6 +16,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/more_information_page.dart';
+import 'package:flutter_app/presentation/pages/service_map_page.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -46,6 +49,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   List<Map<String, dynamic>> _assignedRequests = [];
   bool _loadingAssigned = false;
   bool _assignedInitialized = false;
+
+  int _servicesCount = 0;
 
   List<String> _skills = [];
   bool _savingSkills = false;
@@ -98,19 +103,32 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     super.initState();
     _locationCubit = sl<LocationCubit>()..fetchLocation();
     _initProfile();
+    // Re-fetch once the correct tenant is resolved from the user's location,
+    // so servicesCount is read from the tenant schema instead of public.
+    _locationCubit.stream
+        .firstWhere((s) => s is LocationLoaded)
+        .then((_) { if (mounted) _initProfile(); })
+        .catchError((_) {});
     _isDark = sl<ThemeService>().isDark;
     sl<ThemeService>().addListener(_onThemeChanged);
   }
 
   Future<void> _initProfile() async {
     try {
-      final response = await sl<Dio>().get('/users/me/provider-profile');
-      final data = response.data;
+      final results = await Future.wait([
+        sl<Dio>().get('/users/me/provider-profile'),
+        sl<Dio>().get('/users/me'),
+      ]);
+      final profileData = results[0].data;
+      final meData = results[1].data;
       setState(() {
-        _isAvailable = (data is Map ? data['isAvailable'] : null) ?? true;
-        _skills = (data is Map && data['skills'] is List)
-            ? List<String>.from(data['skills'] as List)
+        _isAvailable =
+            (profileData is Map ? profileData['isAvailable'] : null) ?? true;
+        _skills = (profileData is Map && profileData['skills'] is List)
+            ? List<String>.from(profileData['skills'] as List)
             : [];
+        _servicesCount =
+            (meData is Map ? meData['servicesCount'] as int? : null) ?? 0;
         _hasProfile = true;
         _profileChecked = true;
       });
@@ -151,6 +169,41 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           _newRequests.add(data);
         });
         _showCamelloNotification();
+      }
+    });
+
+    wsService.onTechnicianStatsUpdated((data) {
+      if (!mounted) return;
+      final count = data['servicesCount'];
+      if (count is int) setState(() => _servicesCount = count);
+    });
+
+    wsService.onServiceStatusUpdated((data) {
+      if (!mounted) return;
+      final requestId = data['requestId']?.toString() ?? '';
+      final newStatus = data['status']?.toString() ?? '';
+      if (requestId.isEmpty || newStatus.isEmpty) return;
+
+      setState(() {
+        if (newStatus == 'COMPLETED' || newStatus == 'CANCELLED') {
+          _assignedRequests.removeWhere(
+            (r) => r['id']?.toString() == requestId,
+          );
+        } else {
+          final idx = _assignedRequests.indexWhere(
+            (r) => r['id']?.toString() == requestId,
+          );
+          if (idx >= 0) {
+            _assignedRequests[idx] = Map<String, dynamic>.from(
+              _assignedRequests[idx],
+            )..['status'] = newStatus;
+          }
+        }
+      });
+      // Refresh servicesCount from backend when a service completes so it
+      // stays in sync regardless of which schema was read at startup.
+      if (newStatus == 'COMPLETED') {
+        _initProfile();
       }
     });
   }
@@ -379,33 +432,40 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
   Future<void> _loadAssignedRequests(String userId) async {
     setState(() => _loadingAssigned = true);
-    try {
-      final response = await sl<Dio>().get(
-        '/service-requests',
-        queryParameters: {
-          'technicianUserId': userId,
-          'status': 'ASSIGNED',
-          'page': 0,
-          'limit': 50,
-        },
-      );
-      final data = response.data;
-      List<dynamic> raw = [];
-      if (data is Map<String, dynamic>) {
-        raw = (data['requests'] ?? []) as List<dynamic>;
-      } else if (data is List) {
-        raw = data;
+    final statuses = ['ON_THE_WAY', 'IN_PROGRESS'];
+    final allRequests = <Map<String, dynamic>>[];
+
+    for (final status in statuses) {
+      try {
+        final response = await sl<Dio>().get(
+          '/service-requests',
+          queryParameters: {
+            'technicianUserId': userId,
+            'status': status,
+            'page': 0,
+            'limit': 50,
+          },
+        );
+        final data = response.data;
+        List<dynamic> raw = [];
+        if (data is Map<String, dynamic>) {
+          raw = (data['requests'] ?? []) as List<dynamic>;
+        } else if (data is List) {
+          raw = data;
+        }
+        allRequests.addAll(raw.whereType<Map<String, dynamic>>());
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() {
+        _assignedRequests = allRequests;
+        _loadingAssigned = false;
+      });
+      for (final req in allRequests) {
+        final id = req['id']?.toString() ?? '';
+        if (id.isNotEmpty) sl<WebSocketService>().joinRequestRoom(id);
       }
-      if (mounted) {
-        setState(() {
-          _assignedRequests =
-              raw.whereType<Map<String, dynamic>>().toList();
-        });
-      }
-    } catch (_) {
-      // keep previous list on error
-    } finally {
-      if (mounted) setState(() => _loadingAssigned = false);
     }
   }
 
@@ -460,6 +520,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             (r) => r['id']?.toString() == requestId,
           );
         });
+        // Reload assigned list so the accepted request appears immediately
+        // and the WebSocket room is joined for status updates.
+        _loadAssignedRequests(technicianId);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Solicitud aceptada', style: GoogleFonts.poppins()),
@@ -531,6 +594,8 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     _notificationOverlay = null;
     if (_wsInitialized) {
       sl<WebSocketService>().offNewServiceRequest();
+      sl<WebSocketService>().offTechnicianStatsUpdated();
+      sl<WebSocketService>().offServiceStatusUpdated();
     }
     super.dispose();
   }
@@ -684,9 +749,6 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
               if (i == 2) _loadAssignedRequests(user.id);
             },
             type: BottomNavigationBarType.fixed,
-            backgroundColor: _appBarBg,
-            selectedItemColor: _orange,
-            unselectedItemColor: const Color(0xFF555555),
             selectedLabelStyle: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -904,7 +966,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _buildStatCard(
-                        '0',
+                        '$_servicesCount',
                         'Servicios',
                         Icons.check_circle_rounded,
                         AppColors.primary,
@@ -928,13 +990,13 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           const SizedBox(height: 20),
 
           if (_assignedRequests.isNotEmpty) ...[
-            _buildCamellosAceptadosSection(),
+            _buildCamellosAceptadosSection(technicianId: user.id),
             const SizedBox(height: 16),
             _buildPosiblesCamellosSection(user),
           ] else ...[
             _buildPosiblesCamellosSection(user),
             const SizedBox(height: 16),
-            _buildCamellosAceptadosSection(),
+            _buildCamellosAceptadosSection(technicianId: user.id),
           ],
 
           const SizedBox(height: 24),
@@ -1033,7 +1095,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     );
   }
 
-  Widget _buildCamellosAceptadosSection() {
+  Widget _buildCamellosAceptadosSection({String technicianId = ''}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
@@ -1108,7 +1170,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _assignedRequests.length,
                 itemBuilder: (context, index) =>
-                    _buildAssignedServiceCard(_assignedRequests[index]),
+                    _buildAssignedServiceCard(
+                      _assignedRequests[index],
+                      technicianId,
+                    ),
               ),
           ],
         ),
@@ -1116,7 +1181,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     );
   }
 
-  Widget _buildAssignedServiceCard(Map<String, dynamic> request) {
+  Widget _buildAssignedServiceCard(
+    Map<String, dynamic> request,
+    String technicianId,
+  ) {
     final problema = request['problema']?.toString() ?? 'Sin descripción';
     final address = request['addressText']?.toString();
     final skills =
@@ -1125,85 +1193,132 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             .take(2)
             .join(', ') ??
         '';
+    final status = request['status']?.toString() ?? '';
+    final isInProgress = status == 'IN_PROGRESS';
+    final requestId = request['id']?.toString() ?? '';
+    final tenantId =
+        request['serviceCity']?.toString() ?? sl<TenantService>().tenantId ?? '';
+    final clientLat =
+        (request['latitude'] as num?)?.toDouble() ?? 0.0;
+    final clientLng =
+        (request['longitude'] as num?)?.toDouble() ?? 0.0;
+    final startedAtRaw = request['startedAt']?.toString();
+    final startedAt =
+        startedAtRaw != null ? DateTime.tryParse(startedAtRaw) : null;
+    final technicianMarkedComplete =
+        request['technicianMarkedComplete'] as bool? ?? false;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _cardAlt,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Asignado',
-                  style: GoogleFonts.poppins(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
+    final userId = request['userId']?.toString() ?? '';
+    final clientInfo = <String, dynamic>{
+      'fullName': userId,
+      'phoneNumber': null,
+    };
+
+    final statusLabel = isInProgress ? 'En progreso' : 'Asignado';
+    final statusColor =
+        isInProgress ? AppColors.success : AppColors.primary;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context)
+            .push(
+              MaterialPageRoute(
+                builder: (_) => ServiceMapPage(
+                  requestId: requestId,
+                  technicianId: technicianId,
+                  tenantId: tenantId,
+                  clientLatitude: clientLat,
+                  clientLongitude: clientLng,
+                  clientInfo: clientInfo,
+                  serviceStatus: status,
+                  startedAt: startedAt,
+                  technicianMarkedComplete: technicianMarkedComplete,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            problema,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: _txtPri,
-              fontWeight: FontWeight.w500,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (skills.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              skills,
-              style: GoogleFonts.poppins(
-                fontSize: 11,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-          if (address != null) ...[
-            const SizedBox(height: 6),
+            )
+            .then((_) => _loadAssignedRequests(technicianId));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _cardAlt,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
-                Icon(
-                  Icons.location_on_outlined,
-                  size: 12,
-                  color: _txtSec,
-                ),
-                const SizedBox(width: 4),
-                Expanded(
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Text(
-                    address,
-                    overflow: TextOverflow.ellipsis,
+                    statusLabel,
                     style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: _txtSec,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
                     ),
                   ),
                 ),
+                if (isInProgress && startedAt != null) ...[
+                  const SizedBox(width: 8),
+                  _ProviderElapsedTimer(startedAt: startedAt),
+                ],
+                const Spacer(),
+                Icon(Icons.chevron_right, size: 16, color: _txtSec),
               ],
             ),
+            const SizedBox(height: 8),
+            Text(
+              problema,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: _txtPri,
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (skills.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                skills,
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+            if (address != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.location_on_outlined, size: 12, color: _txtSec),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      address,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        color: _txtSec,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1332,7 +1447,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  user.fullName,
+                  shortName(user.fullName),
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -1848,118 +1963,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _assignedRequests.length,
-        itemBuilder: (context, index) {
-          final r = _assignedRequests[index];
-          final problema = r['problema']?.toString() ?? 'Sin descripción';
-          final address = r['addressText']?.toString();
-          final skills =
-              (r['requestedSkills'] as List?)
-                  ?.map((s) => s.toString())
-                  .toList() ??
-              [];
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Asignado',
-                        style: GoogleFonts.poppins(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  problema,
-                  style: GoogleFonts.poppins(
-                    fontSize: 14,
-                    color: _txtPri,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (skills.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: skills
-                        .map(
-                          (s) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Text(
-                              s,
-                              style: GoogleFonts.poppins(
-                                fontSize: 10,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                if (address != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 13,
-                        color: _txtSec,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          address,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.poppins(
-                            fontSize: 11,
-                            color: _txtSec,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          );
-        },
+        itemBuilder: (context, index) => _buildAssignedServiceCard(
+          _assignedRequests[index],
+          user.id,
+        ),
       ),
     );
   }
@@ -2150,6 +2157,59 @@ class _CamelloPopupState extends State<_CamelloPopup>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProviderElapsedTimer extends StatefulWidget {
+  final DateTime startedAt;
+  const _ProviderElapsedTimer({required this.startedAt});
+
+  @override
+  State<_ProviderElapsedTimer> createState() => _ProviderElapsedTimerState();
+}
+
+class _ProviderElapsedTimerState extends State<_ProviderElapsedTimer> {
+  late int _seconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _seconds = DateTime.now().difference(widget.startedAt).inSeconds;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _seconds++);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  String _format(int s) {
+    final m = s ~/ 60;
+    final sec = s % 60;
+    return '${m.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.timer_outlined, size: 12, color: AppColors.success),
+        const SizedBox(width: 3),
+        Text(
+          _format(_seconds),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.success,
+          ),
+        ),
+      ],
     );
   }
 }
