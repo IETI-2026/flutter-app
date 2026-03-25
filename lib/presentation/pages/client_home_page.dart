@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
+import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_app/presentation/pages/requested_service_technicians_pag
 import 'package:flutter_app/presentation/pages/service_map_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
+import 'package:flutter_app/presentation/widgets/service_summary_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -562,6 +564,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
       final newStatus = data['status']?.toString() ?? '';
       if (requestId.isEmpty || newStatus.isEmpty) return;
 
+      if (newStatus == 'COMPLETED') {
+        _showServiceSummary(requestId, tenantId ?? '');
+      }
+
       setState(() {
         final list = _activeServices;
         if (list == null) return;
@@ -572,7 +578,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
           if (idx >= 0) {
             list[idx] = list[idx].copyWith(status: newStatus);
           } else {
-            // New room we weren't aware of — just reload.
             _loadActiveServices(userId);
           }
         }
@@ -601,6 +606,30 @@ class _ClientHomePageState extends State<ClientHomePage> {
       _activeServices = null;
     });
     _loadActiveServices(userId);
+  }
+
+  Future<void> _showServiceSummary(
+    String requestId,
+    String tenantId,
+  ) async {
+    try {
+      final response = await sl<Dio>().get(
+        '/service-requests/$requestId',
+        options: tenantId.isNotEmpty
+            ? Options(headers: {'X-Tenant-ID': tenantId})
+            : null,
+      );
+      if (!mounted) return;
+      final data = response.data as Map<String, dynamic>;
+      final serviceRequest = _parseServiceRequest(data);
+      await ServiceSummaryModal.show(
+        context,
+        serviceRequest: serviceRequest,
+        tenantId: tenantId,
+      );
+    } catch (e) {
+      AppLogger.error('Error fetching service summary: $e');
+    }
   }
 
   Widget _buildServiceCard(String title, IconData icon, Color color) {
@@ -667,9 +696,20 @@ class _ClientHomePageState extends State<ClientHomePage> {
       startedAt: json['startedAt'] != null
           ? DateTime.tryParse(json['startedAt'].toString())
           : null,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'].toString())
+          : null,
       clientMarkedComplete: json['clientMarkedComplete'] as bool? ?? false,
       technicianMarkedComplete:
           json['technicianMarkedComplete'] as bool? ?? false,
+      displacementDistanceKm:
+          (json['displacementDistanceKm'] as num?)?.toDouble(),
+      finalPrice: (json['finalPrice'] != null)
+          ? double.tryParse(json['finalPrice'].toString())
+          : null,
+      technicianName: json['technicianName']?.toString(),
+      technicianPhotoUrl: json['technicianPhotoUrl']?.toString(),
+      categoryName: json['categoryName']?.toString(),
     );
   }
 

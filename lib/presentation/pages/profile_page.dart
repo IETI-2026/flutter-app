@@ -3,6 +3,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/utils/logger.dart';
+import 'package:flutter_app/core/utils/name_utils.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
@@ -173,7 +174,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  user.fullName,
+                  shortName(user.fullName),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

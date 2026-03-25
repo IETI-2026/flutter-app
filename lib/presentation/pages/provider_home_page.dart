@@ -8,6 +8,7 @@ import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/core/utils/name_utils.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
@@ -1446,7 +1447,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  user.fullName,
+                  shortName(user.fullName),
                   style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

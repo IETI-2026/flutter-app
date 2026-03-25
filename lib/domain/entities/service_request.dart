@@ -15,8 +15,14 @@ class ServiceRequest extends Equatable {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final DateTime? startedAt;
+  final DateTime? completedAt;
   final bool clientMarkedComplete;
   final bool technicianMarkedComplete;
+  final double? displacementDistanceKm;
+  final double? finalPrice;
+  final String? technicianName;
+  final String? technicianPhotoUrl;
+  final String? categoryName;
 
   const ServiceRequest({
     required this.id,
@@ -33,8 +39,14 @@ class ServiceRequest extends Equatable {
     required this.createdAt,
     this.updatedAt,
     this.startedAt,
+    this.completedAt,
     this.clientMarkedComplete = false,
     this.technicianMarkedComplete = false,
+    this.displacementDistanceKm,
+    this.finalPrice,
+    this.technicianName,
+    this.technicianPhotoUrl,
+    this.categoryName,
   });
 
   ServiceRequest copyWith({String? status}) {
@@ -53,8 +65,14 @@ class ServiceRequest extends Equatable {
       createdAt: createdAt,
       updatedAt: updatedAt,
       startedAt: startedAt,
+      completedAt: completedAt,
       clientMarkedComplete: clientMarkedComplete,
       technicianMarkedComplete: technicianMarkedComplete,
+      displacementDistanceKm: displacementDistanceKm,
+      finalPrice: finalPrice,
+      technicianName: technicianName,
+      technicianPhotoUrl: technicianPhotoUrl,
+      categoryName: categoryName,
     );
   }
 
