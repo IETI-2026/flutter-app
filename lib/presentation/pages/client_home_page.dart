@@ -330,7 +330,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 64, color: AppColors.grey.withOpacity(0.4)),
+          Icon(icon, size: 64, color: AppColors.grey.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
           Text(
             '$label próximamente',
@@ -502,7 +502,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       height: 200,
                       child: ListView.separated(
                         itemCount: requests.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) =>
                             _buildLatestServiceCard(
                               context,
@@ -630,44 +630,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     } catch (e) {
       AppLogger.error('Error fetching service summary: $e');
     }
-  }
-
-  Widget _buildServiceCard(String title, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        onTap: () {},
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, size: 32, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: _txtPri,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   ServiceRequest _parseServiceRequest(Map<String, dynamic> json) {
@@ -843,7 +805,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: labelColor.withOpacity(0.1),
+                      color: labelColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(

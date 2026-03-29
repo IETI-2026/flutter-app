@@ -74,6 +74,9 @@ dependencies:
   # Image Picker
   image_picker: ^1.0.4
 
+  # File Picker
+  file_picker: ^8.0.0
+
   # File system
   path_provider: ^2.1.2
   media_store_plus: ^0.1.3

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_app/core/utils/logger.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
@@ -25,9 +26,8 @@ class AuthService {
         'password': password,
       };
 
-      print('🔵 Intentando login a: $url');
-      print('📧 Email: $email');
-      print('📦 Body enviado: $loginData');
+      AppLogger.debug('Intentando login a: $url');
+      AppLogger.debug('Email: $email');
 
       final response = await http.post(
         url,
@@ -35,8 +35,7 @@ class AuthService {
         body: jsonEncode(loginData),
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-      print('📄 Response: ${response.body}');
+      AppLogger.debug('Status Code: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -70,11 +69,11 @@ class AuthService {
           }
         }
 
-        print('❌ Error del backend: $errorMessage');
+        AppLogger.error('Error del backend: $errorMessage');
         return {'success': false, 'error': errorMessage};
       }
     } catch (e) {
-      print('❌ Error en login: $e');
+      AppLogger.error('Error en login: $e');
       return {'success': false, 'error': 'Error de conexión: $e'};
     }
   }
@@ -86,8 +85,8 @@ class AuthService {
         '${ApiConstants.baseUrl}${ApiConstants.signupEndpoint}',
       );
 
-      print('🔵 Intentando registro a: $url');
-      print('� Body enviado: $data');
+      AppLogger.debug('Intentando registro a: ');
+      AppLogger.debug('Body enviado: ');
 
       final response = await http.post(
         url,
@@ -132,11 +131,11 @@ class AuthService {
           }
         }
 
-        print('❌ Error del backend: $errorMessage');
+        AppLogger.error('Error del backend: ');
         return {'success': false, 'error': errorMessage};
       }
     } catch (e) {
-      print('❌ Error en registro: $e');
+      AppLogger.error('Error en registro: ');
       return {'success': false, 'error': 'Error de conexión: $e'};
     }
   }
@@ -184,7 +183,7 @@ class AuthService {
         return _currentUser;
       }
     } catch (e) {
-      print('❌ Error obteniendo usuario: $e');
+      AppLogger.error('Error obteniendo usuario: ');
     }
     return null;
   }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
@@ -38,7 +39,6 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
 
   final _formKey = GlobalKey<FormState>();
   final _bioController = TextEditingController();
-  final _coverageController = TextEditingController(text: '15');
   final _nequiController = TextEditingController();
   final _daviplataController = TextEditingController();
   final _skillSearchController = TextEditingController();
@@ -48,15 +48,26 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
   bool _isAvailable = true;
   bool _isLoading = false;
   bool _showSkillDropdown = false;
+  PlatformFile? _identityDocument;
 
   @override
   void dispose() {
     _bioController.dispose();
-    _coverageController.dispose();
     _nequiController.dispose();
     _daviplataController.dispose();
     _skillSearchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _identityDocument = result.files.first);
+    }
   }
 
   List<String> _filterSkills(String query) {
@@ -97,12 +108,22 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
       );
       return;
     }
+    if (_identityDocument == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sube tu documento de identidad', style: GoogleFonts.poppins(color: _txtPri)),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
       final body = <String, dynamic>{
         'bio': _bioController.text.trim(),
-        'coverageRadiusKm': int.tryParse(_coverageController.text.trim()) ?? 15,
         'isAvailable': _isAvailable,
         'skills': _selectedSkills,
       };
@@ -114,6 +135,21 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
       }
 
       await sl<Dio>().post('/users/me/provider-profile', data: body);
+      if (!mounted) return;
+
+      final doc = _identityDocument!;
+      if (doc.bytes != null) {
+        final formData = FormData.fromMap({
+          'file': MultipartFile.fromBytes(
+            doc.bytes!,
+            filename: doc.name,
+          ),
+        });
+        sl<Dio>()
+            .post('/users/me/provider-profile/upload-document', data: formData)
+            .ignore();
+      }
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/provider-home');
     } on DioException catch (e) {
@@ -178,21 +214,9 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
                           ),
 
                           const SizedBox(height: 20),
-                          _buildLabel('Radio de cobertura (km)'),
+                          _buildLabel('Documento de identidad'),
                           const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _coverageController,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                            style: GoogleFonts.poppins(fontSize: 14, color: _txtPri),
-                            decoration: _inputDecoration('ej: 15', Icons.my_location_outlined),
-                            validator: (v) {
-                              if (v == null || v.trim().isEmpty) return 'Ingresa el radio';
-                              final n = int.tryParse(v.trim());
-                              if (n == null || n <= 0) return 'Número inválido';
-                              return null;
-                            },
-                          ),
+                          _buildDocumentPicker(),
 
                           const SizedBox(height: 20),
                           _buildLabel('Habilidades / Especialidades'),
@@ -306,6 +330,61 @@ class _ProviderOnboardingPageState extends State<ProviderOnboardingPage> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDocumentPicker() {
+    return GestureDetector(
+      onTap: _pickDocument,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: _card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _identityDocument != null ? _orange : _border,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _identityDocument != null
+                  ? Icons.check_circle
+                  : Icons.upload_file,
+              color: _identityDocument != null ? _orange : _txtSec,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _identityDocument != null
+                        ? _identityDocument!.name
+                        : 'Sube una foto de tu documento',
+                    style: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: _identityDocument != null ? _txtPri : _txtHint,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (_identityDocument == null)
+                    Text(
+                      'PDF, JPG, JPEG o PNG',
+                      style: GoogleFonts.poppins(fontSize: 12, color: _txtHint),
+                    ),
+                ],
+              ),
+            ),
+            if (_identityDocument != null)
+              IconButton(
+                icon: const Icon(Icons.close, size: 18, color: _txtSec),
+                onPressed: () => setState(() => _identityDocument = null),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

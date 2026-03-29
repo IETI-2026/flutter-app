@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
+import 'package:flutter_app/core/services/app_insights_service.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
@@ -90,25 +91,18 @@ String? _extractRefreshTokenFromRefreshPayload(Map<String, dynamic> payload) {
   ]);
 }
 
-String _extractErrorMessage(dynamic data) {
-  if (data is Map<String, dynamic>) {
-    final value = data['message'];
-    if (value is List) {
-      return value.join(' ').toLowerCase();
-    }
-    if (value != null) {
-      return value.toString().toLowerCase();
-    }
-  }
-  if (data is String) {
-    return data.toLowerCase();
-  }
-  return '';
-}
-
-bool _isExpiredTokenError(DioException error) {
-  final message = _extractErrorMessage(error.response?.data);
-  return message.contains('expired') || message.contains('expir');
+void _trackHttpRequest(RequestOptions options, int statusCode, bool success) {
+  final startMs = options.extra['_requestStart'] as int?;
+  final duration = startMs != null
+      ? Duration(milliseconds: DateTime.now().millisecondsSinceEpoch - startMs)
+      : Duration.zero;
+  AppInsightsService.instance.trackRequest(
+    '${options.method} ${options.path}',
+    options.uri.toString(),
+    statusCode,
+    duration,
+    success,
+  );
 }
 
 Future<void> initializeDependencies() async {
@@ -242,6 +236,23 @@ Future<void> initializeDependencies() async {
             }
           }
 
+          return handler.next(error);
+        },
+      ),
+    );
+
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.extra['_requestStart'] = DateTime.now().millisecondsSinceEpoch;
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          _trackHttpRequest(response.requestOptions, response.statusCode ?? 200, true);
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          _trackHttpRequest(error.requestOptions, error.response?.statusCode ?? 0, false);
           return handler.next(error);
         },
       ),

@@ -1,4 +1,5 @@
 {
   "API_BASE_URL": "http://10.0.2.2:3000/api",
-  "GOOGLE_SERVER_CLIENT_ID": "1036090311458-p5kqau2o81ogq2qtgshhik959tnfjngj.apps.googleusercontent.com"
+  "GOOGLE_SERVER_CLIENT_ID": "1036090311458-p5kqau2o81ogq2qtgshhik959tnfjngj.apps.googleusercontent.com",
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=b14767db-47c5-4eb6-8062-61500c4c1f49;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=d927faba-c594-492d-a5a1-5b06c1837622"
 }

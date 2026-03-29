@@ -50,7 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(message: failure.message));
       },
       (authResponse) {
-        AppLogger.info('Login successful');
+        AppLogger.event('login_success', {'method': 'email'});
         emit(Authenticated(user: authResponse.user, selectedRole: event.selectedRole));
       },
     );
@@ -75,7 +75,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(message: failure.message));
       },
       (authResponse) {
-        AppLogger.info('Sign up successful');
+        AppLogger.event('signup_success', {'role': event.role});
         emit(SignUpSuccess(user: authResponse.user));
       },
     );
@@ -97,7 +97,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(message: failure.message));
       },
       (authResponse) {
-        AppLogger.info('Google login successful');
+        AppLogger.event('login_success', {'method': 'google'});
         emit(Authenticated(user: authResponse.user, selectedRole: event.selectedRole));
       },
     );
@@ -110,7 +110,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     await logoutUseCase();
 
-    AppLogger.info('Logout successful');
+    AppLogger.event('logout_success');
     emit(const Unauthenticated());
   }
 
@@ -174,7 +174,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(message: failure.message));
       },
       (user) {
-        AppLogger.info('Profile photo uploaded successfully');
+        AppLogger.event('profile_photo_uploaded');
         final selectedRole = currentState is Authenticated
             ? currentState.selectedRole
             : user.role.toLowerCase();

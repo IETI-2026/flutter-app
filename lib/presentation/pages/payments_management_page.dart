@@ -242,7 +242,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
       },
     );
 
-    if (selectedMethod == null) {
+    if (selectedMethod == null || !mounted) {
       return;
     }
 
@@ -503,7 +503,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
                     const SizedBox(height: 12),
                     if (activeMethods.isNotEmpty)
                       DropdownButtonFormField<String>(
-                        value: selectedMethodId,
+                        initialValue: selectedMethodId,
                         items: activeMethods
                             .map(
                               (method) => DropdownMenuItem<String>(
@@ -815,7 +815,7 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
               vertical: 10,
             ),
             leading: CircleAvatar(
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               child: Icon(
                 _iconForMethod(method.methodType),
                 color: Colors.white,

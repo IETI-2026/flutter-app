@@ -535,7 +535,7 @@ class _FilterPanel extends StatelessWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _kStatuses.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final status = _kStatuses[index];
                   final selected = statusFilter == status;
