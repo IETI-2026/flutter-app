@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
+import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,6 +23,7 @@ class LocationCubit extends Cubit<LocationState> {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        AppLogger.warning('Location service disabled');
         emit(const LocationError(message: 'Servicio de ubicación desactivado'));
         return;
       }
@@ -61,6 +63,8 @@ class LocationCubit extends Cubit<LocationState> {
         lng: position.longitude,
       );
 
+      AppLogger.event('location_resolved', {'city': tenant});
+
       emit(
         LocationLoaded(
           formattedAddress: address,
@@ -80,6 +84,7 @@ class LocationCubit extends Cubit<LocationState> {
         );
       } catch (_) {}
     } catch (e) {
+      AppLogger.error('Location fetch failed', e);
       emit(LocationError(message: e.toString()));
     }
   }

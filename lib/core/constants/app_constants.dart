@@ -18,6 +18,11 @@ class AppConstants {
     defaultValue: '',
   );
 
+  static const String appInsightsConnectionString = String.fromEnvironment(
+    'APPLICATIONINSIGHTS_CONNECTION_STRING',
+    defaultValue: '',
+  );
+
   static const int defaultPageSize = 10;
 
   static const String roleClient = 'client';

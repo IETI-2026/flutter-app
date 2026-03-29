@@ -38,6 +38,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   bool _isAvailable = true;
   bool _togglingAvailability = false;
   int _selectedIndex = 0;
+  String _verificationStatus = 'UNVERIFIED';
 
   bool _wsInitialized = false;
   final List<Map<String, dynamic>> _newRequests = [];
@@ -127,6 +128,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         _skills = (profileData is Map && profileData['skills'] is List)
             ? List<String>.from(profileData['skills'] as List)
             : [];
+        _verificationStatus = (profileData is Map
+                ? profileData['verificationStatus']?.toString()
+                : null) ??
+            'UNVERIFIED';
         _servicesCount =
             (meData is Map ? meData['servicesCount'] as int? : null) ?? 0;
         _hasProfile = true;
@@ -620,6 +625,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
       );
     }
 
+    if (_verificationStatus != 'VERIFIED') {
+      return _buildPendingApprovalScreen();
+    }
+
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is AuthLoading || state is AuthInitial) {
@@ -779,6 +788,114 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           ),
         );
       },
+    );
+  }
+
+  // ── PENDING APPROVAL SCREEN ─────────────────────────────────────────────────
+
+  Widget _buildPendingApprovalScreen() {
+    final statusLabel = _verificationStatus == 'REJECTED'
+        ? 'Rechazado'
+        : _verificationStatus == 'SUSPENDED'
+            ? 'Suspendido'
+            : 'Pendiente de aprobación';
+
+    final statusIcon = _verificationStatus == 'REJECTED'
+        ? Icons.cancel_outlined
+        : _verificationStatus == 'SUSPENDED'
+            ? Icons.block
+            : Icons.hourglass_top_rounded;
+
+    final statusColor = _verificationStatus == 'REJECTED' ||
+            _verificationStatus == 'SUSPENDED'
+        ? AppColors.error
+        : _orange;
+
+    return Scaffold(
+      backgroundColor: _bg,
+      appBar: AppBar(
+        backgroundColor: _card,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'CameYo',
+          style: GoogleFonts.poppins(
+            color: _txtPri,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.logout, color: _txtSec),
+            onPressed: () {
+              context.read<AuthBloc>().add(const LogoutEvent());
+            },
+          ),
+        ],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(statusIcon, size: 48, color: statusColor),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                statusLabel,
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: _txtPri,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _verificationStatus == 'REJECTED'
+                    ? 'Tu documento de identidad fue rechazado. Contacta soporte para más información.'
+                    : _verificationStatus == 'SUSPENDED'
+                        ? 'Tu cuenta de profesional ha sido suspendida. Contacta soporte para más información.'
+                        : 'Tu documento de identidad está siendo revisado. Te notificaremos cuando seas aprobado para comenzar a trabajar.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: _txtSec,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: _initProfile,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(
+                    'Verificar estado',
+                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _orange,
+                    side: BorderSide(color: _orange),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1197,7 +1314,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     final isInProgress = status == 'IN_PROGRESS';
     final requestId = request['id']?.toString() ?? '';
     final tenantId =
-        request['serviceCity']?.toString() ?? sl<TenantService>().tenantId ?? '';
+        request['serviceCity']?.toString() ?? sl<TenantService>().tenantId;
     final clientLat =
         (request['latitude'] as num?)?.toDouble() ?? 0.0;
     final clientLng =
@@ -1973,40 +2090,6 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
 
 
   // ── STAT CARD ────────────────────────────────────────────────────────────────
-
-  BottomNavigationBarItem _navItem(
-    IconData icon,
-    IconData activeIcon,
-    String label,
-  ) {
-    Widget buildColumn(IconData iconData, bool active) => SizedBox(
-          height: 52,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Icon(iconData),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(
-                  fontSize: 10.5,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                  color: active ? _orange : const Color(0xFF555555),
-                  height: 1.2,
-                ),
-              ),
-            ],
-          ),
-        );
-
-    return BottomNavigationBarItem(
-      icon: buildColumn(icon, false),
-      activeIcon: buildColumn(activeIcon, true),
-      label: label,
-    );
-  }
 
   Widget _buildStatCard(
     String value,

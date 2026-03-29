@@ -83,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
             end: Alignment.bottomRight,
             colors: [
               AppColors.primary,
-              AppColors.primary.withOpacity(0.8),
+              AppColors.primary.withValues(alpha: 0.8),
               AppColors.secondary,
             ],
           ),
@@ -134,7 +134,7 @@ class _SplashScreenState extends State<SplashScreen>
                       style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w300,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -167,7 +167,7 @@ class _SplashScreenState extends State<SplashScreen>
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -204,9 +204,9 @@ class _SplashScreenState extends State<SplashScreen>
               height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   width: 2,
                 ),
               ),

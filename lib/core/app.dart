@@ -14,6 +14,7 @@ import 'package:flutter_app/presentation/pages/client_payments_page.dart';
 import 'package:flutter_app/presentation/pages/provider_home_page.dart';
 import 'package:flutter_app/presentation/pages/provider_onboarding_page.dart';
 import 'package:flutter_app/presentation/pages/provider_payments_page.dart';
+import 'package:flutter_app/core/utils/app_insights_navigator_observer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -32,6 +33,7 @@ class CameYoApp extends StatelessWidget {
           theme: _buildLightTheme(),
           darkTheme: _buildDarkTheme(),
           themeMode: sl<ThemeService>().mode,
+          navigatorObservers: [AppInsightsNavigatorObserver()],
           initialRoute: '/',
           routes: {
             '/': (context) => const SplashScreen(),
