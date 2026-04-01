@@ -75,3 +75,7 @@ ios/Flutter/.last_build_id
 
 # macOS
 .DS_Store
+
+.agents/
+
+skills-lock.json
