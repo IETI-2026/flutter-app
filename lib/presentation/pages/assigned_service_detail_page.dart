@@ -275,8 +275,16 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
             ),
         ],
       ),
-      body: Column(
-        children: [
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        onRefresh: _loadTechnician,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
+                children: [
           // Status banner
           Container(
             width: double.infinity,
@@ -516,7 +524,11 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
                     ],
                   ),
           ),
-        ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

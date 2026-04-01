@@ -52,6 +52,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   bool _assignedInitialized = false;
 
   int _servicesCount = 0;
+  double? _averageRating;
 
   List<String> _skills = [];
   bool _savingSkills = false;
@@ -134,6 +135,10 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
             'UNVERIFIED';
         _servicesCount =
             (meData is Map ? meData['servicesCount'] as int? : null) ?? 0;
+        final rawRating =
+            profileData is Map ? profileData['averageRating'] : null;
+        _averageRating =
+            rawRating != null ? (rawRating as num).toDouble() : null;
         _hasProfile = true;
         _profileChecked = true;
       });
@@ -902,7 +907,17 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   // ── HOME TAB ────────────────────────────────────────────────────────────────
 
   Widget _buildHomeTab(User user) {
-    return SingleChildScrollView(
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        await _initProfile();
+        if (mounted) {
+          _loadAvailableRequests(user.id);
+          _loadAssignedRequests(user.id);
+        }
+      },
+      child: SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1074,7 +1089,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                   children: [
                     Expanded(
                       child: _buildStatCard(
-                        '4.8',
+                        (_averageRating != null && _averageRating! > 0)
+                            ? _averageRating!.toStringAsFixed(1)
+                            : '0',
                         'Calificación',
                         Icons.star_rounded,
                         AppColors.primary,
@@ -1119,6 +1136,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
           const SizedBox(height: 24),
         ],
       ),
+    ),
     );
   }
 
