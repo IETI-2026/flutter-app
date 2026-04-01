@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
@@ -15,6 +14,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/profile_page.dart';
+import 'package:flutter_app/presentation/pages/rate_service_page.dart';
 import 'package:flutter_app/presentation/pages/requested_service_technicians_page.dart';
 import 'package:flutter_app/presentation/pages/service_map_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
@@ -22,7 +22,6 @@ import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_app/presentation/widgets/service_summary_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -38,6 +37,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
   List<ServiceRequest>? _activeServices;
   bool _activeServicesLoading = false;
   String? _activeServicesUserId;
+  List<ServiceRequest>? _unratedServices;
+  bool _unratedServicesLoading = false;
   bool _isDark = false;
   Timer? _locationTimer;
   String? _activeRequestId;
@@ -342,10 +343,17 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   Widget _buildHomeTab(BuildContext context, user) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: () async {
+        _refreshActiveServices(user.id);
+        await _loadUnratedServices(user.id, forceReload: true);
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -515,7 +523,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Tu ubicación actual',
+                  'Pendientes de calificar',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -523,13 +531,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildCurrentLocationMap(),
+                _buildUnratedServicesSection(context, user.id),
                 const SizedBox(height: 100),
               ],
             ),
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -606,6 +615,178 @@ class _ClientHomePageState extends State<ClientHomePage> {
       _activeServices = null;
     });
     _loadActiveServices(userId);
+  }
+
+  Future<void> _loadUnratedServices(
+    String userId, {
+    bool forceReload = false,
+  }) async {
+    if (!forceReload && _unratedServicesLoading) return;
+    if (!forceReload && _unratedServices != null) return;
+
+    setState(() => _unratedServicesLoading = true);
+
+    var locState = _locationCubit.state;
+    if (locState is! LocationLoaded) {
+      try {
+        await _locationCubit.stream.firstWhere(
+          (s) => s is LocationLoaded || s is LocationError,
+        );
+        locState = _locationCubit.state;
+      } catch (_) {}
+    }
+
+    try {
+      final response = await sl<Dio>().get(
+        '/service-requests',
+        queryParameters: {
+          'userId': userId,
+          'status': 'COMPLETED',
+          'isRated': false,
+          'page': 0,
+          'limit': 50,
+        },
+      );
+      final data = response.data;
+      List<dynamic> list = [];
+      if (data is Map<String, dynamic>) {
+        list = (data['requests'] ?? []) as List<dynamic>;
+      } else if (data is List) {
+        list = data;
+      }
+      if (!mounted) return;
+      setState(() {
+        _unratedServices = list
+            .whereType<Map<String, dynamic>>()
+            .map(_parseServiceRequest)
+            .toList();
+        _unratedServicesLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _unratedServicesLoading = false);
+    }
+  }
+
+  Widget _buildUnratedServicesSection(BuildContext context, String userId) {
+    if (_unratedServices == null || _unratedServicesLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadUnratedServices(userId);
+      });
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: SizedBox(
+            height: 24,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+        ),
+      );
+    }
+
+    final services = _unratedServices!;
+
+    if (services.isEmpty) {
+      return Card(
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'No tienes servicios pendientes de calificar.',
+            style: TextStyle(color: _txtSec),
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: services.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final service = services[index];
+        return _buildUnratedServiceCard(context, service, userId);
+      },
+    );
+  }
+
+  Widget _buildUnratedServiceCard(
+    BuildContext context,
+    ServiceRequest service,
+    String userId,
+  ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () async {
+          final tenantId = service.serviceCity ?? '';
+          final rated = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(
+              builder: (_) => RateServicePage(
+                serviceRequestId: service.id,
+                technicianName: service.technicianName ?? 'Técnico',
+                serviceName: service.categoryName ?? service.problema,
+                tenantId: tenantId,
+              ),
+            ),
+          );
+          if (rated == true) {
+            setState(() {
+              _unratedServices?.removeWhere((s) => s.id == service.id);
+            });
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.star_outline_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      service.categoryName ?? service.problema,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: _txtPri,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (service.technicianName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Técnico: ${service.technicianName}',
+                        style: TextStyle(fontSize: 13, color: _txtSec),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: _txtSec),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _showServiceSummary(
@@ -848,60 +1029,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Widget _buildCurrentLocationMap() {
-    return BlocBuilder<LocationCubit, LocationState>(
-      bloc: _locationCubit,
-      builder: (context, locationState) {
-        if (locationState is! LocationLoaded) {
-          return Container(
-            height: 210,
-            decoration: BoxDecoration(
-              color: _card,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          );
-        }
-
-        final currentPoint = LatLng(
-          locationState.latitude,
-          locationState.longitude,
-        );
-
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: SizedBox(
-            height: 210,
-            child: FlutterMap(
-              options: MapOptions(initialCenter: currentPoint, initialZoom: 15),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.cameyo.app',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: currentPoint,
-                      width: 42,
-                      height: 42,
-                      child: const Icon(
-                        Icons.my_location,
-                        color: AppColors.primary,
-                        size: 30,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _ElapsedTimer extends StatefulWidget {
