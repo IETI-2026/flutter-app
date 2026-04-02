@@ -822,6 +822,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         backgroundColor: _card,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: _txtSec),
+          onPressed: () {
+            context.read<AuthBloc>().add(const LogoutEvent());
+          },
+        ),
         title: Text(
           'CameYo',
           style: GoogleFonts.poppins(
