@@ -822,6 +822,12 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         backgroundColor: _card,
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: _txtSec),
+          onPressed: () {
+            context.read<AuthBloc>().add(const LogoutEvent());
+          },
+        ),
         title: Text(
           'CameYo',
           style: GoogleFonts.poppins(
@@ -1343,10 +1349,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     final technicianMarkedComplete =
         request['technicianMarkedComplete'] as bool? ?? false;
 
-    final userId = request['userId']?.toString() ?? '';
     final clientInfo = <String, dynamic>{
-      'fullName': userId,
-      'phoneNumber': null,
+      'fullName': request['clientName']?.toString() ?? request['userId']?.toString() ?? 'Cliente',
+      'phoneNumber': request['addressText']?.toString(),
     };
 
     final statusLabel = isInProgress ? 'En progreso' : 'Asignado';

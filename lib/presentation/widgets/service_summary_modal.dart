@@ -45,7 +45,7 @@ class ServiceSummaryModal extends StatelessWidget {
   }
 
   String _formatPrice(double? price) {
-    if (price == null) return '\$0';
+    if (price == null) return 'Por definir';
     final formatter = NumberFormat('#,###', 'es_CO');
     return '\$${formatter.format(price.toInt())}';
   }

@@ -433,7 +433,10 @@ class _TechnicianCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '4.8',
+                            technician['averageRating'] != null
+                                ? (technician['averageRating'] as num)
+                                    .toStringAsFixed(1)
+                                : '-',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
