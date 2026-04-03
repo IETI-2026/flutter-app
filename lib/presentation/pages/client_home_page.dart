@@ -14,6 +14,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/profile_page.dart';
+import 'package:flutter_app/presentation/pages/provider_search_page.dart';
 import 'package:flutter_app/presentation/pages/rate_service_page.dart';
 import 'package:flutter_app/presentation/pages/requested_service_technicians_page.dart';
 import 'package:flutter_app/presentation/pages/service_map_page.dart';
@@ -42,6 +43,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   bool _isDark = false;
   Timer? _locationTimer;
   String? _activeRequestId;
+  final TextEditingController _searchController = TextEditingController();
 
   Color get _bg =>
       _isDark ? const Color(0xFF0F0F0F) : AppColors.backgroundLight;
@@ -67,6 +69,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _searchController.dispose();
     sl<WebSocketService>().offLocationUpdated();
     sl<WebSocketService>().offServiceStatusUpdated();
     sl<ThemeService>().removeListener(_onThemeChanged);
@@ -440,8 +443,20 @@ class _ClientHomePageState extends State<ClientHomePage> {
                     color: _cardAlt,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const TextField(
-                    decoration: InputDecoration(
+                  child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (query) {
+                      if (query.trim().isEmpty) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProviderSearchPage(initialQuery: query.trim()),
+                        ),
+                      );
+                      _searchController.clear();
+                    },
+                    decoration: const InputDecoration(
                       hintText: 'Buscar camellos...',
                       border: InputBorder.none,
                       icon: Icon(Icons.search, color: AppColors.grey),
