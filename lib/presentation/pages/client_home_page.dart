@@ -852,6 +852,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
           : null,
       technicianName: json['technicianName']?.toString(),
       technicianPhotoUrl: json['technicianPhotoUrl']?.toString(),
+      technicianRating: (json['technicianRating'] as num?)?.toDouble(),
       categoryName: json['categoryName']?.toString(),
     );
   }
@@ -967,6 +968,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
                           clientMarkedComplete: request.clientMarkedComplete,
                           isClientView: true,
                           clientUserId: userId,
+                          technicianName: request.technicianName,
+                          technicianRating: request.technicianRating,
                         ),
                       ),
                     )

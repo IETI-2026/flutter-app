@@ -22,6 +22,7 @@ class ServiceRequest extends Equatable {
   final double? finalPrice;
   final String? technicianName;
   final String? technicianPhotoUrl;
+  final double? technicianRating;
   final String? categoryName;
 
   const ServiceRequest({
@@ -46,6 +47,7 @@ class ServiceRequest extends Equatable {
     this.finalPrice,
     this.technicianName,
     this.technicianPhotoUrl,
+    this.technicianRating,
     this.categoryName,
   });
 
@@ -72,6 +74,7 @@ class ServiceRequest extends Equatable {
       finalPrice: finalPrice,
       technicianName: technicianName,
       technicianPhotoUrl: technicianPhotoUrl,
+      technicianRating: technicianRating,
       categoryName: categoryName,
     );
   }

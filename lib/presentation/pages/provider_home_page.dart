@@ -1349,10 +1349,9 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     final technicianMarkedComplete =
         request['technicianMarkedComplete'] as bool? ?? false;
 
-    final userId = request['userId']?.toString() ?? '';
     final clientInfo = <String, dynamic>{
-      'fullName': userId,
-      'phoneNumber': null,
+      'fullName': request['clientName']?.toString() ?? request['userId']?.toString() ?? 'Cliente',
+      'phoneNumber': request['addressText']?.toString(),
     };
 
     final statusLabel = isInProgress ? 'En progreso' : 'Asignado';

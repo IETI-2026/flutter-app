@@ -28,6 +28,9 @@ class ServiceMapPage extends StatefulWidget {
   final bool isClientView;
   // The client's own userId, used for location updates in client view.
   final String? clientUserId;
+  // Technician info shown in client view.
+  final String? technicianName;
+  final double? technicianRating;
 
   const ServiceMapPage({
     super.key,
@@ -45,6 +48,8 @@ class ServiceMapPage extends StatefulWidget {
     this.initialTechLongitude,
     this.isClientView = false,
     this.clientUserId,
+    this.technicianName,
+    this.technicianRating,
   });
 
   @override
@@ -247,6 +252,8 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
       _ => _currentStatus,
     };
     final statusColor = isInProgress ? AppColors.success : AppColors.primary;
+    final techName = widget.technicianName ?? 'Técnico';
+    final rating = widget.technicianRating;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,6 +275,49 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
                 fontWeight: FontWeight.w600,
                 color: statusColor,
                 fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+              child: Text(
+                techName.isNotEmpty ? techName[0].toUpperCase() : 'T',
+                style: const TextStyle(color: AppColors.primary),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    techName,
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  if (rating != null)
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded,
+                            size: 14, color: Colors.amber),
+                        const SizedBox(width: 3),
+                        Text(
+                          rating.toStringAsFixed(1),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
               ),
             ),
           ],
