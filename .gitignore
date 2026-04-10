@@ -79,3 +79,8 @@ ios/Flutter/.last_build_id
 .agents/
 
 skills-lock.json
+
+# Environment files with real credentials
+env/local.android.json
+env/local.ios.json
+env/*.json
