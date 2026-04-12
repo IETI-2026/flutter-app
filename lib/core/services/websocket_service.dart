@@ -17,7 +17,7 @@ class WebSocketService {
     return url;
   }
 
-  void connect({String? technicianId, String? tenantId}) {
+  void connect({String? technicianId, String? tenantId, String? token}) {
     if (technicianId != null) _pendingTechnicianId = technicianId;
     if (tenantId != null) _pendingTenantId = tenantId;
 
@@ -28,13 +28,15 @@ class WebSocketService {
       return;
     }
 
-    _socket = io.io(
-      _wsBaseUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket', 'polling'])
-          .disableAutoConnect()
-          .build(),
-    );
+    final options = io.OptionBuilder()
+        .setTransports(['websocket', 'polling'])
+        .disableAutoConnect();
+
+    if (token != null) {
+      options.setAuth({'token': token});
+    }
+
+    _socket = io.io(_wsBaseUrl, options.build());
 
     _socket!.onConnect((_) {
       AppLogger.info('WebSocket connected');

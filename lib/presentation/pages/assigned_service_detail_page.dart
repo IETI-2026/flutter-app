@@ -123,7 +123,6 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
         await sl<Dio>().patch(
           '/service-requests/${widget.requestId}/update-location',
           data: {
-            'userId': widget.clientUserId,
             'latitude': pos.latitude,
             'longitude': pos.longitude,
           },
@@ -164,7 +163,7 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
     try {
       await sl<Dio>().patch(
         '/service-requests/${widget.requestId}/mark-complete',
-        data: {'userId': widget.clientUserId, 'role': 'client'},
+        data: {'role': 'client'},
         options: Options(headers: {'X-Tenant-ID': widget.tenantId}),
       );
       if (!mounted) return;

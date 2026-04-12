@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
-import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/core/utils/name_utils.dart';
 import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
@@ -10,8 +9,8 @@ import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
 import 'package:flutter_app/presentation/pages/more_information_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
+import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 
 class ProfilePage extends StatefulWidget {
   final User user;
@@ -24,7 +23,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _isDark = false;
-  final _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -41,37 +39,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _onThemeChanged() {
     if (mounted) setState(() => _isDark = sl<ThemeService>().isDark);
-  }
-
-  Future<void> _pickAndUploadPhoto() async {
-    try {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-      if (picked == null) return;
-
-      final ext = picked.path.split('.').last.toLowerCase();
-      if (!['jpg', 'jpeg', 'png'].contains(ext)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Solo se permiten imágenes JPG, JPEG o PNG'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return;
-      }
-
-      if (mounted) {
-        context.read<AuthBloc>().add(
-          UploadProfilePhotoEvent(filePath: picked.path),
-        );
-      }
-    } catch (e) {
-      AppLogger.error('Error picking image', e);
-    }
   }
 
   Color get _bg => _isDark ? const Color(0xFF1C1C1C) : AppColors.white;
@@ -117,26 +84,10 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Stack(
                   children: [
-                    CircleAvatar(
+                    ProfilePhotoWidget(
+                      photoUrl: user.profilePhotoUrl,
+                      name: user.fullName,
                       radius: 42,
-                      backgroundColor: AppColors.primary.withValues(
-                        alpha: 0.12,
-                      ),
-                      backgroundImage: user.profilePhotoUrl != null
-                          ? NetworkImage(user.profilePhotoUrl!)
-                          : null,
-                      child: user.profilePhotoUrl == null
-                          ? Text(
-                              user.fullName.isNotEmpty
-                                  ? user.fullName[0].toUpperCase()
-                                  : '?',
-                              style: TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : null,
                     ),
                     if (isUploading)
                       const Positioned.fill(
@@ -149,27 +100,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                         ),
                       ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: isUploading ? null : _pickAndUploadPhoto,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _bg, width: 2),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -316,45 +246,54 @@ class _ProfilePageState extends State<ProfilePage> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _bg,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 16, 8, 0),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Cerrar sesión',
-              style: TextStyle(color: _txtPri, fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              icon: Icon(Icons.close, color: _txtSec),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
+        title: Text(
+          'Cerrar sesión',
+          style: TextStyle(color: _txtPri, fontWeight: FontWeight.bold),
         ),
         content: Text(
-          '¿Estás seguro de que quieres cerrar sesión?',
+          '¿Deseas salir de la aplicación?',
           style: TextStyle(color: _txtSec),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const LogoutEvent());
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/auth-role',
-                (_) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _txtSec,
+                    side: BorderSide(color: _divider),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Cancelar'),
+                ),
               ),
-            ),
-            child: const Text('Cerrar sesión'),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    context.read<AuthBloc>().add(const LogoutEvent());
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/auth-role',
+                      (_) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Aceptar'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
