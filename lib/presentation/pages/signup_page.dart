@@ -178,9 +178,17 @@ class _SignUpPageState extends State<SignUpPage> {
             );
             // Navigate based on role
             if (state.user.isClient) {
-              Navigator.pushReplacementNamed(context, '/client-home');
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/client-home',
+                (_) => false,
+              );
             } else if (state.user.isProvider) {
-              Navigator.pushReplacementNamed(context, '/provider-home');
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/provider-home',
+                (_) => false,
+              );
             }
           }
         },

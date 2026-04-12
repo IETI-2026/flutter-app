@@ -5,17 +5,22 @@ import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/models/user_model.dart';
 import 'package:flutter_app/domain/entities/user.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final SharedPreferences sharedPreferences;
+  final FlutterSecureStorage _secureStorage;
 
-  AuthLocalDataSourceImpl({required this.sharedPreferences});
+  AuthLocalDataSourceImpl({
+    required this.sharedPreferences,
+    required FlutterSecureStorage secureStorage,
+  }) : _secureStorage = secureStorage;
 
   @override
   Future<void> saveAccessToken(String token) async {
     try {
-      await sharedPreferences.setString(AppConstants.accessTokenKey, token);
+      await _secureStorage.write(key: AppConstants.accessTokenKey, value: token);
       AppLogger.info('Access token saved');
     } catch (e) {
       AppLogger.error('Error saving access token', e);
@@ -26,7 +31,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getAccessToken() async {
     try {
-      return sharedPreferences.getString(AppConstants.accessTokenKey);
+      return await _secureStorage.read(key: AppConstants.accessTokenKey);
     } catch (e) {
       AppLogger.error('Error getting access token', e);
       return null;
@@ -36,7 +41,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveRefreshToken(String token) async {
     try {
-      await sharedPreferences.setString(AppConstants.refreshTokenKey, token);
+      await _secureStorage.write(key: AppConstants.refreshTokenKey, value: token);
       AppLogger.info('Refresh token saved');
     } catch (e) {
       AppLogger.error('Error saving refresh token', e);
@@ -47,7 +52,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getRefreshToken() async {
     try {
-      return sharedPreferences.getString(AppConstants.refreshTokenKey);
+      return await _secureStorage.read(key: AppConstants.refreshTokenKey);
     } catch (e) {
       AppLogger.error('Error getting refresh token', e);
       return null;
@@ -57,8 +62,8 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveUserRole(String role) async {
     try {
-      await sharedPreferences.setString(AppConstants.userRoleKey, role);
-      AppLogger.info('User role saved: $role');
+      await _secureStorage.write(key: AppConstants.userRoleKey, value: role);
+      AppLogger.info('User role saved');
     } catch (e) {
       AppLogger.error('Error saving user role', e);
       throw CacheException('Error al guardar rol de usuario');
@@ -68,7 +73,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<String?> getUserRole() async {
     try {
-      return sharedPreferences.getString(AppConstants.userRoleKey);
+      return await _secureStorage.read(key: AppConstants.userRoleKey);
     } catch (e) {
       AppLogger.error('Error getting user role', e);
       return null;
@@ -118,14 +123,31 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
 
   @override
   Future<void> clearAll() async {
+    final errors = <Object>[];
+
+    for (final key in [
+      AppConstants.accessTokenKey,
+      AppConstants.refreshTokenKey,
+      AppConstants.userRoleKey,
+    ]) {
+      try {
+        await _secureStorage.delete(key: key);
+      } catch (e) {
+        AppLogger.error('Error deleting key $key from secure storage', e);
+        errors.add(e);
+      }
+    }
+
     try {
-      await sharedPreferences.remove(AppConstants.accessTokenKey);
-      await sharedPreferences.remove(AppConstants.refreshTokenKey);
-      await sharedPreferences.remove(AppConstants.userRoleKey);
       await sharedPreferences.remove(AppConstants.userDataKey);
-      AppLogger.info('All auth data cleared');
     } catch (e) {
-      AppLogger.error('Error clearing auth data', e);
+      AppLogger.error('Error removing user data from shared preferences', e);
+      errors.add(e);
+    }
+
+    if (errors.isEmpty) {
+      AppLogger.info('All auth data cleared');
+    } else {
       throw CacheException('Error al limpiar datos de autenticación');
     }
   }

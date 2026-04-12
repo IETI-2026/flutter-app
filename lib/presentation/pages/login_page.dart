@@ -71,9 +71,17 @@ class _LoginPageState extends State<LoginPage> {
             );
           } else if (state is Authenticated) {
             if (state.selectedRole == 'provider') {
-              Navigator.pushReplacementNamed(context, '/provider-home');
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/provider-home',
+                (_) => false,
+              );
             } else {
-              Navigator.pushReplacementNamed(context, '/client-home');
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/client-home',
+                (_) => false,
+              );
             }
           }
         },

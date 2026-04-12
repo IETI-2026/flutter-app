@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 class ApiConstants {
   // Para emulador Android usa 10.0.2.2
   // Para dispositivo físico usa la IP de tu máquina (ej: 192.168.1.x)
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  // TODO(legacy): migrate callers to AppConstants.apiBaseUrl
+  static const String baseUrl = 'https://10.0.2.2:3000/api';
   static const String loginEndpoint = '/auth/login';
   static const String signupEndpoint = '/auth/signup';
   static const String refreshEndpoint = '/auth/refresh';

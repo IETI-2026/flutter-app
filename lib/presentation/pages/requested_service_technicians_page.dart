@@ -6,6 +6,7 @@ import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/core/utils/logger.dart';
+import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 
 class RequestedServiceTechniciansPage extends StatefulWidget {
   final String requestId;
@@ -84,10 +85,11 @@ class _RequestedServiceTechniciansPageState
     }
   }
 
-  void _setupWebSocket() {
+  Future<void> _setupWebSocket() async {
     final wsService = sl<WebSocketService>();
     if (!wsService.isConnected) {
-      wsService.connect();
+      final token = await sl<AuthLocalDataSource>().getAccessToken();
+      wsService.connect(token: token);
     }
 
     wsService.joinRequestRoom(widget.requestId);
@@ -166,7 +168,6 @@ class _RequestedServiceTechniciansPageState
         '/service-requests/${widget.requestId}/choose-technician',
         data: {
           'technicianUserId': technicianId,
-          'customerUserId': widget.clientUserId,
         },
       );
       if (!mounted) return;

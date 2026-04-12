@@ -104,7 +104,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
         await sl<Dio>().patch(
           '/service-requests/$requestId/update-location',
           data: {
-            'userId': userId,
             'latitude': pos.latitude,
             'longitude': pos.longitude,
           },
@@ -145,7 +144,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
       await sl<Dio>().post(
         '/service-requests',
         data: {
-          'userId': userId,
           'problema': problema,
           'latitude': locationState.latitude,
           'longitude': locationState.longitude,
@@ -876,7 +874,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     String userId, {
     String? tenantId,
   }) async {
-    final statuses = ['REQUESTED', 'ON_THE_WAY', 'IN_PROGRESS'];
+    final statuses = ['REQUESTED', 'ASSIGNED', 'ON_THE_WAY', 'IN_PROGRESS'];
     final allRequests = <ServiceRequest>[];
     final options = tenantId != null && tenantId.isNotEmpty
         ? Options(headers: {'X-Tenant-ID': tenantId})

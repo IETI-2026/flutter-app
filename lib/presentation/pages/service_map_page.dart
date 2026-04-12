@@ -67,6 +67,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
   bool _technicianMarkedComplete = false;
   bool _clientMarkedComplete = false;
   bool _markingComplete = false;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
@@ -140,7 +141,16 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
         _elapsedSeconds = 0;
         _startTimer();
       }
+      if (newStatus == 'COMPLETED') {
+        _navigateToHome();
+      }
     });
+  }
+
+  void _navigateToHome() {
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+    Navigator.of(context).pop();
   }
 
   void _startTimer() {
@@ -150,7 +160,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
   }
 
   void _startLocationUpdates() {
-    _locationTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+    _locationTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
       try {
         final pos = await Geolocator.getCurrentPosition(
           locationSettings:
@@ -170,7 +180,6 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
         await sl<Dio>().patch(
           '/service-requests/${widget.requestId}/update-location',
           data: {
-            'userId': userId,
             'latitude': pos.latitude,
             'longitude': pos.longitude,
           },
@@ -201,7 +210,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
     try {
       await sl<Dio>().patch(
         '/service-requests/${widget.requestId}/mark-complete',
-        data: {'userId': userId, 'role': role},
+        data: {'role': role},
         options: Options(headers: {'X-Tenant-ID': widget.tenantId}),
       );
       if (!mounted) return;
@@ -218,6 +227,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
           backgroundColor: AppColors.success,
         ),
       );
+      _navigateToHome();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -601,18 +611,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.cameyo.app',
                     ),
-                    PolylineLayer(
-                      polylines: [
-                        Polyline(
-                          points: [techPoint, _clientLocation],
-                          color: AppColors.primary.withValues(alpha: 0.6),
-                          strokeWidth: 3,
-                          pattern: StrokePattern.dashed(
-                            segments: const [12, 8],
-                          ),
-                        ),
-                      ],
-                    ),
+
                     MarkerLayer(
                       markers: [
                         Marker(

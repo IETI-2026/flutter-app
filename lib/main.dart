@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_app/core/app.dart';
@@ -13,7 +14,12 @@ import 'package:flutter_app/core/constants/app_constants.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  print('AI_CONN: ${AppConstants.appInsightsConnectionString}');
+  assert(
+    kDebugMode || AppConstants.baseUrl.startsWith('https://'),
+    'API_BASE_URL must use HTTPS in release builds',
+  );
+
+  AppLogger.debug('AI_CONN: ${AppConstants.appInsightsConnectionString}');
 
   AppInsightsService.instance.initialize();
 

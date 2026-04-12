@@ -20,6 +20,7 @@ import 'package:flutter_app/domain/usecases/signup_usecase.dart';
 import 'package:flutter_app/domain/usecases/upload_profile_photo_usecase.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -108,6 +109,7 @@ void _trackHttpRequest(RequestOptions options, int statusCode, bool success) {
 Future<void> initializeDependencies() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton<SharedPreferences>(() => sharedPreferences);
+  sl.registerLazySingleton<FlutterSecureStorage>(() => const FlutterSecureStorage());
 
   sl.registerLazySingleton<TenantService>(() => TenantService());
   sl.registerLazySingleton<ThemeService>(() => ThemeService(sharedPreferences));
@@ -271,7 +273,7 @@ Future<void> initializeDependencies() async {
   );
 
   sl.registerLazySingleton<AuthLocalDataSource>(
-    () => AuthLocalDataSourceImpl(sharedPreferences: sl()),
+    () => AuthLocalDataSourceImpl(sharedPreferences: sl(), secureStorage: sl()),
   );
 
   sl.registerLazySingleton<AuthRemoteDataSource>(

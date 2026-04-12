@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_app/core/utils/logger.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../utils/constants.dart';
 
@@ -9,6 +9,8 @@ class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
+
+  final _secureStorage = const FlutterSecureStorage();
 
   User? _currentUser;
   User? get currentUser => _currentUser;
@@ -27,7 +29,6 @@ class AuthService {
       };
 
       AppLogger.debug('Intentando login a: $url');
-      AppLogger.debug('Email: $email');
 
       final response = await http.post(
         url,
@@ -41,17 +42,18 @@ class AuthService {
         final data = jsonDecode(response.body);
 
         // Guardar tokens
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(StorageKeys.accessToken, data['accessToken']);
-        if (data['refreshToken'] != null) {
-          await prefs.setString(StorageKeys.refreshToken, data['refreshToken']);
+        final accessToken = data['accessToken']?.toString();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await _secureStorage.write(key: StorageKeys.accessToken, value: accessToken);
+        }
+        final refreshToken = data['refreshToken']?.toString();
+        if (refreshToken != null && refreshToken.isNotEmpty) {
+          await _secureStorage.write(key: StorageKeys.refreshToken, value: refreshToken);
         }
 
         // Guardar rol desde la respuesta del backend
-        await prefs.setString(
-          StorageKeys.userRole,
-          data['user']['role'] ?? 'CLIENT',
-        );
+        final role = data['user']['role']?.toString() ?? 'CLIENT';
+        await _secureStorage.write(key: StorageKeys.userRole, value: role);
 
         // Guardar usuario
         _currentUser = User.fromJson(data['user']);
@@ -98,22 +100,17 @@ class AuthService {
         final responseData = jsonDecode(response.body);
 
         // Guardar tokens
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(
-          StorageKeys.accessToken,
-          responseData['accessToken'],
-        );
-        if (responseData['refreshToken'] != null) {
-          await prefs.setString(
-            StorageKeys.refreshToken,
-            responseData['refreshToken'],
-          );
+        final accessToken = responseData['accessToken']?.toString();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await _secureStorage.write(key: StorageKeys.accessToken, value: accessToken);
+        }
+        final refreshToken = responseData['refreshToken']?.toString();
+        if (refreshToken != null && refreshToken.isNotEmpty) {
+          await _secureStorage.write(key: StorageKeys.refreshToken, value: refreshToken);
         }
         // Guardar rol del usuario desde la respuesta del backend
-        await prefs.setString(
-          StorageKeys.userRole,
-          responseData['user']['role'] ?? 'CLIENT',
-        );
+        final role = responseData['user']['role']?.toString() ?? 'CLIENT';
+        await _secureStorage.write(key: StorageKeys.userRole, value: role);
 
         // Guardar usuario
         _currentUser = User.fromJson(responseData['user']);
@@ -142,17 +139,18 @@ class AuthService {
 
   // Logout
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(StorageKeys.accessToken);
-    await prefs.remove(StorageKeys.refreshToken);
-    await prefs.remove(StorageKeys.userRole);
+    await _secureStorage.delete(key: StorageKeys.accessToken);
+    await _secureStorage.delete(key: StorageKeys.refreshToken);
+    await _secureStorage.delete(key: StorageKeys.userRole);
     _currentUser = null;
   }
 
   // Verificar si está autenticado
+  // NOTE (legacy debt): this only checks token presence, not server-side expiry.
+  // Expired tokens will still return true. Token expiry validation is handled
+  // by the Dio interceptor in injection_container.dart via the refresh flow.
   Future<bool> isAuthenticated() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(StorageKeys.accessToken);
+    final token = await _secureStorage.read(key: StorageKeys.accessToken);
     return token != null && token.isNotEmpty;
   }
 
@@ -161,8 +159,7 @@ class AuthService {
     if (_currentUser != null) return _currentUser;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(StorageKeys.accessToken);
+      final token = await _secureStorage.read(key: StorageKeys.accessToken);
 
       if (token == null) return null;
 

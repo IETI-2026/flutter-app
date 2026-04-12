@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/tenant_service.dart';
+import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/core/utils/name_utils.dart';
@@ -155,14 +156,16 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     }
   }
 
-  void _initWebSocket(String userId) {
+  Future<void> _initWebSocket(String userId) async {
     if (_wsInitialized) return;
     _wsInitialized = true;
 
+    final token = await sl<AuthLocalDataSource>().getAccessToken();
     final wsService = sl<WebSocketService>();
     wsService.connect(
       technicianId: userId,
       tenantId: sl<TenantService>().tenantId,
+      token: token,
     );
 
     wsService.onNewServiceRequest((data) {
@@ -824,9 +827,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: _txtSec),
-          onPressed: () {
-            context.read<AuthBloc>().add(const LogoutEvent());
-          },
+          onPressed: () => _confirmLogout(context),
         ),
         title: Text(
           'CameYo',
@@ -839,9 +840,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         actions: [
           IconButton(
             icon: Icon(Icons.logout, color: _txtSec),
-            onPressed: () {
-              context.read<AuthBloc>().add(const LogoutEvent());
-            },
+            onPressed: () => _confirmLogout(context),
           ),
         ],
       ),
@@ -1845,48 +1844,57 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
       builder: (dialogContext) => AlertDialog(
         backgroundColor: _card,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 16, 8, 0),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Cerrar sesión',
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.bold,
-                color: _txtPri,
-              ),
-            ),
-            IconButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              icon: Icon(Icons.close, color: _txtSec),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
+        title: Text(
+          'Cerrar sesión',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            color: _txtPri,
+          ),
         ),
         content: Text(
-          '¿Estás seguro de que quieres cerrar sesión?',
+          '¿Deseas salir de la aplicación?',
           style: GoogleFonts.poppins(color: _txtSec),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const LogoutEvent());
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/auth-role',
-                (_) => false,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: _txtSec,
+                    side: BorderSide(color: _border),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('Cancelar', style: GoogleFonts.poppins()),
+                ),
               ),
-            ),
-            child: Text('Cerrar sesión', style: GoogleFonts.poppins()),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    context.read<AuthBloc>().add(const LogoutEvent());
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/auth-role',
+                      (_) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text('Aceptar', style: GoogleFonts.poppins()),
+                ),
+              ),
+            ],
           ),
         ],
       ),

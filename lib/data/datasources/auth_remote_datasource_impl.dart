@@ -86,7 +86,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
   }) async {
     try {
-      AppLogger.info('Login attempt for email: $email');
+      final domain = email.contains('@') ? email.split('@').last : 'unknown';
+      AppLogger.info('Login attempt for domain: $domain');
 
       final response = await dio.post(
         '${AppConstants.authEndpoint}/login',
@@ -136,7 +137,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String? phoneNumber,
   }) async {
     try {
-      AppLogger.info('Sign up attempt for email: $email');
+      final domain = email.contains('@') ? email.split('@').last : 'unknown';
+      AppLogger.info('Sign up attempt for domain: $domain');
 
       // El DTO de Nest no admite `role`; el perfil cliente/profesional se define en la app.
       final response = await dio.post(
