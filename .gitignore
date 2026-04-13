@@ -84,3 +84,6 @@ skills-lock.json
 env/local.android.json
 env/local.ios.json
 env/*.json
+
+.claude/
+
