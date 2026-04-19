@@ -10,16 +10,22 @@ import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
+import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource.dart';
+import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource_impl.dart';
 import 'package:flutter_app/data/repositories/auth_repository_impl.dart';
+import 'package:flutter_app/data/repositories/skill_suggestion_repository_impl.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
+import 'package:flutter_app/domain/repositories/skill_suggestion_repository.dart';
 import 'package:flutter_app/domain/usecases/get_current_user_usecase.dart';
 import 'package:flutter_app/domain/usecases/login_usecase.dart';
 import 'package:flutter_app/domain/usecases/login_with_google_usecase.dart';
 import 'package:flutter_app/domain/usecases/logout_usecase.dart';
 import 'package:flutter_app/domain/usecases/signup_usecase.dart';
+import 'package:flutter_app/domain/usecases/suggest_skill_usecase.dart';
 import 'package:flutter_app/domain/usecases/upload_profile_photo_usecase.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
+import 'package:flutter_app/presentation/bloc/skill_suggestion/skill_suggestion_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -288,12 +294,21 @@ Future<void> initializeDependencies() async {
     () => GeocodingRemoteDataSource(dio: sl()),
   );
 
+  sl.registerLazySingleton<SkillSuggestionRemoteDataSource>(
+    () => SkillSuggestionRemoteDataSourceImpl(dio: sl()),
+  );
+
+  sl.registerLazySingleton<SkillSuggestionRepository>(
+    () => SkillSuggestionRepositoryImpl(remoteDataSource: sl()),
+  );
+
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => GetCurrentUserUseCase(sl()));
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
+  sl.registerLazySingleton(() => SuggestSkillUseCase(sl()));
 
   sl.registerFactory(
     () => LocationCubit(geocodingDataSource: sl(), tenantService: sl(), dio: sl()),
@@ -308,5 +323,9 @@ Future<void> initializeDependencies() async {
       getCurrentUserUseCase: sl(),
       uploadProfilePhotoUseCase: sl(),
     ),
+  );
+
+  sl.registerFactory(
+    () => SkillSuggestionBloc(suggestSkillUseCase: sl()),
   );
 }

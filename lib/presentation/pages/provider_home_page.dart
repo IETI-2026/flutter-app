@@ -18,7 +18,9 @@ import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/location/location_state.dart';
 import 'package:flutter_app/presentation/pages/more_information_page.dart';
 import 'package:flutter_app/presentation/pages/service_map_page.dart';
+import 'package:flutter_app/presentation/bloc/skill_suggestion/skill_suggestion_bloc.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
+import 'package:flutter_app/presentation/widgets/suggest_skill_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -1732,7 +1734,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: GestureDetector(
-                          onTap: () => _showComingSoon(context),
+                          onTap: () => _showSuggestSkillModal(context),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
@@ -1826,6 +1828,18 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     );
   }
 
+  void _showSuggestSkillModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BlocProvider(
+        create: (_) => sl<SkillSuggestionBloc>(),
+        child: const SuggestSkillModal(),
+      ),
+    );
+  }
+
   void _showComingSoon(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1857,44 +1871,52 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _txtSec,
-                    side: BorderSide(color: _border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _txtSec,
+                      side: BorderSide(color: _border),
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
+                    child: Text('Cancelar', style: GoogleFonts.poppins()),
                   ),
-                  child: Text('Cancelar', style: GoogleFonts.poppins()),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    context.read<AuthBloc>().add(const LogoutEvent());
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/auth-role',
-                      (_) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.error,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      context.read<AuthBloc>().add(const LogoutEvent());
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/auth-role',
+                        (_) => false,
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.error,
+                      side: BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
+                    child: Text('Aceptar', style: GoogleFonts.poppins()),
                   ),
-                  child: Text('Aceptar', style: GoogleFonts.poppins()),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
