@@ -223,9 +223,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
             backgroundColor: _card,
             elevation: 0,
             title: Text(
-              _selectedIndex == 3 ? 'Mi Perfil' : 'CameYo',
+              _selectedIndex == 2 ? 'Mi Perfil' : 'CameYo',
               style: TextStyle(
-                color: _selectedIndex == 3 ? _txtPri : AppColors.primary,
+                color: _selectedIndex == 2 ? _txtPri : AppColors.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -255,7 +255,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
             index: _selectedIndex,
             children: [
               _buildHomeTab(context, user),
-              _buildComingSoonTab(Icons.search, 'Búsqueda'),
               BlocBuilder<LocationCubit, LocationState>(
                 bloc: _locationCubit,
                 builder: (context, locationState) {
@@ -289,10 +288,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
                 label: 'Inicio',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'Buscar',
-              ),
-              BottomNavigationBarItem(
                 icon: Icon(Icons.list_alt_outlined),
                 activeIcon: Icon(Icons.list_alt),
                 label: 'Solicitudes',
@@ -321,26 +316,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
   void _onTabSelected(int index) {
     setState(() {
       _selectedIndex = index;
-      if (index == 2) {
+      if (index == 1) {
         _misServicesRefreshToken++;
       }
     });
-  }
-
-  Widget _buildComingSoonTab(IconData icon, String label) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 64, color: AppColors.grey.withValues(alpha: 0.4)),
-          const SizedBox(height: 16),
-          Text(
-            '$label próximamente',
-            style: TextStyle(fontSize: 16, color: _txtSec),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildHomeTab(BuildContext context, user) {

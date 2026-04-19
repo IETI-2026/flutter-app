@@ -256,44 +256,52 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _txtSec,
-                    side: BorderSide(color: _divider),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+          SizedBox(
+            width: double.infinity,
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _txtSec,
+                      side: BorderSide(color: _divider),
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
+                    child: const Text('Cancelar'),
                   ),
-                  child: const Text('Cancelar'),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    context.read<AuthBloc>().add(const LogoutEvent());
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/auth-role',
-                      (_) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.error,
-                    foregroundColor: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                      context.read<AuthBloc>().add(const LogoutEvent());
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/auth-role',
+                        (_) => false,
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.white,
+                      backgroundColor: AppColors.error,
+                      side: BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 44),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
+                    child: const Text('Aceptar'),
                   ),
-                  child: const Text('Aceptar'),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

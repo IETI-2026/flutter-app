@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
 
 enum SeverityLevel { verbose, information, warning, error, critical }
@@ -165,15 +164,6 @@ class AppInsightsService {
       },
     };
 
-    if (kDebugMode && baseType == 'RequestData') {
-      final dataMap = envelope['data'] as Map<String, dynamic>;
-      final baseData = dataMap['baseData'] as Map<String, dynamic>;
-
-      if (baseData['id'] == null) {
-        debugPrint('REQUEST SIN ID DETECTADO: ${jsonEncode(envelope)}');
-      }
-    }
-
     return envelope;
   }
 
@@ -212,10 +202,6 @@ class AppInsightsService {
   void _enqueue(Map<String, dynamic> envelope) {
     _buffer.add(envelope);
 
-    if (kDebugMode) {
-      debugPrint('AI QUEUED: ${envelope['name']}');
-    }
-
     if (_buffer.length >= _maxBufferSize) {
       flush();
     }
@@ -241,17 +227,10 @@ class AppInsightsService {
         const Duration(seconds: 10),
       );
 
-      final responseBody = await response.transform(utf8.decoder).join();
-
-      if (kDebugMode) {
-        debugPrint('STATUS: ${response.statusCode}');
-        debugPrint('RESPONSE: $responseBody');
-      }
+      await response.transform(utf8.decoder).join();
 
       client.close(force: false);
-    } catch (e) {
-      debugPrint('AppInsights flush error: $e');
-    }
+    } catch (_) {}
   }
 
   String _formatDuration(Duration d) {
