@@ -7,6 +7,8 @@ import 'package:flutter_app/domain/entities/user.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
+import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
+import 'package:flutter_app/presentation/pages/address_management_page.dart';
 import 'package:flutter_app/presentation/pages/more_information_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
@@ -150,8 +152,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   label: 'Direcciones',
                   isDark: _isDark,
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Próximamente')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddressManagementPage(),
+                      ),
                     );
                   },
                 ),
@@ -280,6 +285,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: OutlinedButton(
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
+                      sl<LocationCubit>().reset();
                       context.read<AuthBloc>().add(const LogoutEvent());
                       Navigator.pushNamedAndRemoveUntil(
                         context,

@@ -1020,7 +1020,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  '¡Hola, ${user.fullName.split(' ').first}! 👋',
+                  '¡Hola, ${user.fullName.split(' ').first}!',
                   style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,

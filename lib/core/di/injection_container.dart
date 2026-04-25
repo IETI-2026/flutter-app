@@ -9,20 +9,28 @@ import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource_impl.dart';
+import 'package:flutter_app/data/datasources/address_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource_impl.dart';
+import 'package:flutter_app/data/repositories/address_repository_impl.dart';
 import 'package:flutter_app/data/repositories/auth_repository_impl.dart';
 import 'package:flutter_app/data/repositories/skill_suggestion_repository_impl.dart';
+import 'package:flutter_app/domain/repositories/address_repository.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
 import 'package:flutter_app/domain/repositories/skill_suggestion_repository.dart';
+import 'package:flutter_app/domain/usecases/create_address_usecase.dart';
+import 'package:flutter_app/domain/usecases/delete_address_usecase.dart';
+import 'package:flutter_app/domain/usecases/get_addresses_usecase.dart';
 import 'package:flutter_app/domain/usecases/get_current_user_usecase.dart';
 import 'package:flutter_app/domain/usecases/login_usecase.dart';
 import 'package:flutter_app/domain/usecases/login_with_google_usecase.dart';
 import 'package:flutter_app/domain/usecases/logout_usecase.dart';
+import 'package:flutter_app/domain/usecases/set_default_address_usecase.dart';
 import 'package:flutter_app/domain/usecases/signup_usecase.dart';
 import 'package:flutter_app/domain/usecases/suggest_skill_usecase.dart';
 import 'package:flutter_app/domain/usecases/upload_profile_photo_usecase.dart';
+import 'package:flutter_app/presentation/bloc/address/address_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:flutter_app/presentation/bloc/skill_suggestion/skill_suggestion_bloc.dart';
@@ -302,6 +310,19 @@ Future<void> initializeDependencies() async {
     () => SkillSuggestionRepositoryImpl(remoteDataSource: sl()),
   );
 
+  sl.registerLazySingleton<AddressRemoteDataSource>(
+    () => AddressRemoteDataSource(dio: sl()),
+  );
+
+  sl.registerLazySingleton<AddressRepository>(
+    () => AddressRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton(() => GetAddressesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateAddressUseCase(sl()));
+  sl.registerLazySingleton(() => SetDefaultAddressUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAddressUseCase(sl()));
+
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => SignUpUseCase(sl()));
   sl.registerLazySingleton(() => LoginWithGoogleUseCase(sl()));
@@ -310,7 +331,7 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton(() => UploadProfilePhotoUseCase(sl()));
   sl.registerLazySingleton(() => SuggestSkillUseCase(sl()));
 
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => LocationCubit(geocodingDataSource: sl(), tenantService: sl(), dio: sl()),
   );
 
@@ -327,5 +348,14 @@ Future<void> initializeDependencies() async {
 
   sl.registerFactory(
     () => SkillSuggestionBloc(suggestSkillUseCase: sl()),
+  );
+
+  sl.registerFactory(
+    () => AddressBloc(
+      getAddresses: sl(),
+      createAddress: sl(),
+      setDefault: sl(),
+      deleteAddress: sl(),
+    ),
   );
 }

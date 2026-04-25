@@ -1,9 +1,12 @@
+import 'dart:math' as math;
+
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/constants/app_constants.dart';
+import 'package:flutter_app/core/di/injection_container.dart';
+import 'package:flutter_app/presentation/bloc/location/location_cubit.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:animate_do/animate_do.dart';
-import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -43,15 +46,19 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _resolveInitialRoute() async {
-    await Future<void>.delayed(const Duration(seconds: 2));
-
     final prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString(AppConstants.accessTokenKey);
     final storedRole = prefs.getString(AppConstants.userRoleKey) ?? '';
 
-    if (!mounted) {
-      return;
+    // If the user is already authenticated, warm up geolocation in parallel
+    // with the remaining splash delay so the home page loads with location ready.
+    if (accessToken != null && accessToken.isNotEmpty) {
+      sl<LocationCubit>().fetchLocationIfNeeded();
     }
+
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
 
     if (accessToken == null || accessToken.isEmpty) {
       Navigator.pushReplacementNamed(context, '/auth-role');
