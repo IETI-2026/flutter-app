@@ -19,6 +19,8 @@ import 'package:flutter_app/presentation/pages/rate_service_page.dart';
 import 'package:flutter_app/presentation/pages/requested_service_technicians_page.dart';
 import 'package:flutter_app/presentation/pages/service_map_page.dart';
 import 'package:flutter_app/presentation/pages/service_requests_page.dart';
+import 'package:flutter_app/presentation/pages/address_management_page.dart';
+import 'package:flutter_app/presentation/widgets/address_selector_widget.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
 import 'package:flutter_app/presentation/widgets/service_summary_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -43,6 +45,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   bool _isDark = false;
   Timer? _locationTimer;
   String? _activeRequestId;
+  String? _lastKnownServiceCity;
   final TextEditingController _searchController = TextEditingController();
 
   Color get _bg =>
@@ -61,7 +64,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
   @override
   void initState() {
     super.initState();
-    _locationCubit = sl<LocationCubit>()..fetchLocation();
+    _locationCubit = sl<LocationCubit>();
+    // Only start geolocation if not already fetching (may have been pre-warmed
+    // by the splash screen while the user was authenticated).
+    _locationCubit.fetchLocationIfNeeded();
     _isDark = sl<ThemeService>().isDark;
     sl<ThemeService>().addListener(_onThemeChanged);
   }
@@ -73,7 +79,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
     sl<WebSocketService>().offLocationUpdated();
     sl<WebSocketService>().offServiceStatusUpdated();
     sl<ThemeService>().removeListener(_onThemeChanged);
-    _locationCubit.close();
+    // LocationCubit is a singleton — do not close it here.
     super.dispose();
   }
 
@@ -217,7 +223,21 @@ class _ClientHomePageState extends State<ClientHomePage> {
 
         final user = state.user;
 
-        return Scaffold(
+        return BlocListener<LocationCubit, LocationState>(
+          bloc: _locationCubit,
+          listenWhen: (_, curr) => curr is LocationLoaded,
+          listener: (context, locationState) {
+            if (locationState is LocationLoaded) {
+              if (_lastKnownServiceCity != null &&
+                  _lastKnownServiceCity != locationState.serviceCity) {
+                _refreshActiveServices(user.id);
+                _loadUnratedServices(user.id, forceReload: true);
+                setState(() => _misServicesRefreshToken++);
+              }
+              _lastKnownServiceCity = locationState.serviceCity;
+            }
+          },
+          child: Scaffold(
           backgroundColor: _bg,
           appBar: AppBar(
             backgroundColor: _card,
@@ -308,6 +328,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   label: const Text('Solicitar Servicio'),
                 )
               : null,
+        ),
         );
       },
     );
@@ -358,7 +379,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        '¡Hola, ${user.fullName.split(' ').first}! 👋',
+                        '¡Hola, ${user.fullName.split(' ').first}!',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -366,45 +387,20 @@ class _ClientHomePageState extends State<ClientHomePage> {
                         ),
                       ),
                     ),
-                    BlocBuilder<LocationCubit, LocationState>(
-                      bloc: _locationCubit,
-                      builder: (context, locationState) {
-                        if (locationState is LocationLoaded) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Icon(
-                                Icons.location_on,
-                                size: 16,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(height: 2),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 120,
-                                ),
-                                child: Text(
-                                  locationState.formattedAddress,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: _txtSec,
-                                  ),
-                                ),
-                              ),
-                            ],
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 150),
+                      child: AddressSelectorWidget(
+                        locationCubit: _locationCubit,
+                        isDark: _isDark,
+                        onNavigateToAddressManagement: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddressManagementPage(),
+                            ),
                           );
-                        }
-                        if (locationState is LocationLoading) {
-                          return const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
+                        },
+                      ),
                     ),
                   ],
                 ),

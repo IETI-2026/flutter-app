@@ -37,6 +37,21 @@ class LocationLoaded extends LocationState {
   ];
 }
 
+class LocationOptimistic extends LocationState {
+  final String displayLabel;
+  final double latitude;
+  final double longitude;
+
+  const LocationOptimistic({
+    required this.displayLabel,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  @override
+  List<Object?> get props => [displayLabel, latitude, longitude];
+}
+
 class LocationError extends LocationState {
   final String message;
 
