@@ -104,7 +104,9 @@ class LocationCubit extends Cubit<LocationState> {
   }
 
   void reset() {
-    emit(const LocationInitial());
+    if (!isClosed) {
+      emit(const LocationInitial());
+    }
   }
 
   Future<void> fetchLocationFromAddress({

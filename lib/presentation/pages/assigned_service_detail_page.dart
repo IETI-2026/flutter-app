@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/domain/entities/service_request.dart';
 import 'package:flutter_app/presentation/widgets/profile_photo_widget.dart';
+import 'package:flutter_app/presentation/widgets/service_summary_modal.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -161,12 +163,14 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
   Future<void> _markComplete() async {
     setState(() => _markingComplete = true);
     try {
-      await sl<Dio>().patch(
+      final response = await sl<Dio>().patch(
         '/service-requests/${widget.requestId}/mark-complete',
         data: {'role': 'client'},
         options: Options(headers: {'X-Tenant-ID': widget.tenantId}),
       );
       if (!mounted) return;
+      final data = response.data as Map<String, dynamic>;
+      final isNowCompleted = data['status']?.toString() == 'COMPLETED';
       setState(() => _clientMarkedComplete = true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -174,6 +178,13 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
           backgroundColor: AppColors.success,
         ),
       );
+      if (isNowCompleted) {
+        await ServiceSummaryModal.show(
+          context,
+          serviceRequest: _parseServiceRequest(data),
+          tenantId: widget.tenantId,
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -182,6 +193,48 @@ class _AssignedServiceDetailPageState extends State<AssignedServiceDetailPage> {
     } finally {
       if (mounted) setState(() => _markingComplete = false);
     }
+  }
+
+  ServiceRequest _parseServiceRequest(Map<String, dynamic> json) {
+    return ServiceRequest(
+      id: json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      assignedTechnicianId: json['assignedTechnicianId']?.toString(),
+      problema: json['problema']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'UNKNOWN',
+      urgency: json['urgency']?.toString(),
+      requestedSkills: (json['requestedSkills'] is List)
+          ? (json['requestedSkills'] as List).map((s) => s.toString()).toList()
+          : const [],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      addressText: json['addressText']?.toString(),
+      serviceCity: json['serviceCity']?.toString(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
+      startedAt: json['startedAt'] != null
+          ? DateTime.tryParse(json['startedAt'].toString())
+          : null,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'].toString())
+          : null,
+      clientMarkedComplete: json['clientMarkedComplete'] as bool? ?? false,
+      technicianMarkedComplete:
+          json['technicianMarkedComplete'] as bool? ?? false,
+      displacementDistanceKm:
+          (json['displacementDistanceKm'] as num?)?.toDouble(),
+      finalPrice: json['finalPrice'] != null
+          ? double.tryParse(json['finalPrice'].toString())
+          : null,
+      technicianName: json['technicianName']?.toString(),
+      technicianPhotoUrl: json['technicianPhotoUrl']?.toString(),
+      technicianRating: (json['technicianRating'] as num?)?.toDouble(),
+      categoryName: json['categoryName']?.toString(),
+    );
   }
 
   void _showComingSoon() {

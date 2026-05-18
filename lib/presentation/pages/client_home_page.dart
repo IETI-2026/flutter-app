@@ -973,6 +973,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                           clientUserId: userId,
                           technicianName: request.technicianName,
                           technicianRating: request.technicianRating,
+                          technicianPhotoUrl: request.technicianPhotoUrl,
                         ),
                       ),
                     )

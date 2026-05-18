@@ -1365,6 +1365,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     final clientInfo = <String, dynamic>{
       'fullName': request['clientName']?.toString() ?? request['userId']?.toString() ?? 'Cliente',
       'phoneNumber': request['addressText']?.toString(),
+      'profilePhotoUrl': request['clientPhotoUrl']?.toString(),
     };
 
     final statusLabel = isInProgress ? 'En progreso' : 'Asignado';
