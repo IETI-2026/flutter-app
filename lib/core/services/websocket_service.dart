@@ -177,5 +177,40 @@ class WebSocketService {
     _socket?.off('technician_stats_updated');
   }
 
+  void sendChatMessage(String serviceRequestId, String content) {
+    _socket?.emit('send_chat_message', {
+      'serviceRequestId': serviceRequestId,
+      'content': content,
+    });
+  }
+
+  void onChatMessage(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('new_chat_message', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offChatMessage() {
+    _socket?.off('new_chat_message');
+  }
+
+  void onPaymentCompleted(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('payment_completed', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offPaymentCompleted() {
+    _socket?.off('payment_completed');
+  }
+
   bool get isConnected => _socket?.connected ?? false;
 }

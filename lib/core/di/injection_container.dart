@@ -5,19 +5,23 @@ import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/core/utils/logger.dart';
+import 'package:flutter_app/services/payment_service.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/address_remote_datasource.dart';
+import 'package:flutter_app/data/datasources/chat_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/geocoding_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource.dart';
 import 'package:flutter_app/data/datasources/skill_suggestion_remote_datasource_impl.dart';
 import 'package:flutter_app/data/repositories/address_repository_impl.dart';
 import 'package:flutter_app/data/repositories/auth_repository_impl.dart';
+import 'package:flutter_app/data/repositories/chat_repository_impl.dart';
 import 'package:flutter_app/data/repositories/skill_suggestion_repository_impl.dart';
 import 'package:flutter_app/domain/repositories/address_repository.dart';
 import 'package:flutter_app/domain/repositories/auth_repository.dart';
+import 'package:flutter_app/domain/repositories/chat_repository.dart';
 import 'package:flutter_app/domain/repositories/skill_suggestion_repository.dart';
 import 'package:flutter_app/domain/usecases/create_address_usecase.dart';
 import 'package:flutter_app/domain/usecases/delete_address_usecase.dart';
@@ -318,6 +322,14 @@ Future<void> initializeDependencies() async {
     () => AddressRepositoryImpl(remoteDataSource: sl()),
   );
 
+  sl.registerLazySingleton<ChatRemoteDataSource>(
+    () => ChatRemoteDataSource(dio: sl()),
+  );
+
+  sl.registerLazySingleton<ChatRepository>(
+    () => ChatRepositoryImpl(remoteDataSource: sl()),
+  );
+
   sl.registerLazySingleton(() => GetAddressesUseCase(sl()));
   sl.registerLazySingleton(() => CreateAddressUseCase(sl()));
   sl.registerLazySingleton(() => SetDefaultAddressUseCase(sl()));
@@ -358,4 +370,6 @@ Future<void> initializeDependencies() async {
       deleteAddress: sl(),
     ),
   );
+
+  sl.registerLazySingleton<PaymentService>(() => PaymentService(dio: sl()));
 }

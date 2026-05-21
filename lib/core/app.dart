@@ -6,6 +6,7 @@ import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_event.dart';
 import 'package:flutter_app/presentation/models/auth_entry_role.dart';
 import 'package:flutter_app/presentation/pages/auth_role_selection_page.dart';
+import 'package:flutter_app/presentation/pages/chat_page.dart';
 import 'package:flutter_app/presentation/pages/login_page.dart';
 import 'package:flutter_app/presentation/pages/signup_page.dart';
 import 'package:flutter_app/presentation/pages/splash_screen.dart';
@@ -55,6 +56,14 @@ class CameYoApp extends StatelessWidget {
             '/provider-home': (context) => const ProviderHomePage(),
             '/provider-payments': (context) => const ProviderPaymentsPage(),
             '/provider-onboarding': (context) => const ProviderOnboardingPage(),
+            '/chat': (context) {
+              final args = ModalRoute.of(context)?.settings.arguments
+                  as Map<String, String>?;
+              return ChatPage(
+                serviceRequestId: args?['serviceRequestId'] ?? '',
+                otherPartyName: args?['otherPartyName'] ?? 'Chat',
+              );
+            },
           },
         ),
       ),

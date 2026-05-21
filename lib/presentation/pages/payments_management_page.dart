@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
+import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/services/payment_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentsManagementPage extends StatefulWidget {
   final String roleLabel;
@@ -14,7 +17,7 @@ class PaymentsManagementPage extends StatefulWidget {
 }
 
 class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
-  final PaymentService _paymentService = PaymentService();
+  late final PaymentService _paymentService;
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -40,14 +43,38 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
   @override
   void initState() {
     super.initState();
+    _paymentService = sl<PaymentService>();
     _isDark = sl<ThemeService>().isDark;
     sl<ThemeService>().addListener(_onThemeChanged);
+    _subscribePaymentCompleted();
     _loadData();
+  }
+
+  void _subscribePaymentCompleted() {
+    sl<WebSocketService>().onPaymentCompleted((data) {
+      AppLogger.info('WebSocket payment_completed: $data');
+      if (mounted) {
+        _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['status'] == 'COMPLETED'
+                  ? '¡Pago completado! Recibo disponible en tu historial.'
+                  : 'Pago actualizado: ${data['status']}',
+            ),
+            backgroundColor: data['status'] == 'COMPLETED'
+                ? Colors.green
+                : AppColors.primary,
+          ),
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     sl<ThemeService>().removeListener(_onThemeChanged);
+    sl<WebSocketService>().offPaymentCompleted();
     super.dispose();
   }
 
@@ -463,6 +490,30 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
+    }
+  }
+
+  Future<void> _openEpaycoCheckout(PaymentModel payment) async {
+    final rawUrl = _paymentService.getEpaycoCheckoutUrl(payment.id);
+    final uri = Uri.parse(rawUrl);
+    try {
+      final canOpen = await canLaunchUrl(uri);
+      if (!canOpen) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir el navegador para el pago.'),
+          ),
+        );
+        return;
+      }
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      AppLogger.error('Error abriendo checkout ePayco', e);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al abrir checkout: $e')),
+      );
     }
   }
 
@@ -982,33 +1033,63 @@ class _PaymentsManagementPageState extends State<PaymentsManagementPage> {
               const Text('Aún no tienes pagos registrados.')
             else
               ..._payments.map(
-                (payment) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.receipt_long_outlined),
-                  title: Text(
-                    '${_labelForMethod(payment.paymentMethod)} · ${_formatMoney(payment.grossAmount)}',
-                  ),
-                  subtitle: Text(
-                    'Estado: ${payment.status}\nSolicitud: ${payment.serviceRequestId}',
-                  ),
-                  isThreeLine: true,
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (status) =>
-                        _updatePaymentStatus(payment, status),
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'PROCESSING',
-                        child: Text('PROCESSING'),
+                (payment) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.receipt_long_outlined),
+                      title: Text(
+                        '${_labelForMethod(payment.paymentMethod)} · COP ${_formatMoney(payment.grossAmount)}',
                       ),
-                      PopupMenuItem(
-                        value: 'COMPLETED',
-                        child: Text('COMPLETED'),
+                      subtitle: Text(
+                        'Estado: ${payment.status}\nSolicitud: ${payment.serviceRequestId.substring(0, 8)}...',
                       ),
-                      PopupMenuItem(value: 'FAILED', child: Text('FAILED')),
-                      PopupMenuItem(value: 'REFUNDED', child: Text('REFUNDED')),
-                    ],
-                    icon: const Icon(Icons.more_vert),
-                  ),
+                      isThreeLine: true,
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (status) =>
+                            _updatePaymentStatus(payment, status),
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'PROCESSING',
+                            child: Text('En proceso'),
+                          ),
+                          PopupMenuItem(
+                            value: 'COMPLETED',
+                            child: Text('Completado'),
+                          ),
+                          PopupMenuItem(
+                            value: 'FAILED',
+                            child: Text('Fallido'),
+                          ),
+                          PopupMenuItem(
+                            value: 'REFUNDED',
+                            child: Text('Reembolsado'),
+                          ),
+                        ],
+                        icon: const Icon(Icons.more_vert),
+                      ),
+                    ),
+                    if (payment.isEpayco && payment.isProcessing)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 8),
+                        child: ElevatedButton.icon(
+                          onPressed: _isSubmitting
+                              ? null
+                              : () => _openEpaycoCheckout(payment),
+                          icon: const Icon(Icons.open_in_browser, size: 18),
+                          label: const Text('Pagar con ePayco'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0077C2),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
           ],
