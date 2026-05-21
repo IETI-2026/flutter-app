@@ -1,0 +1,5 @@
+{
+  "API_BASE_URL": "https://your-api-base-url/api",
+  "GOOGLE_SERVER_CLIENT_ID": "your-google-server-client-id",
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=your-key;IngestionEndpoint=https://your-region.in.applicationinsights.azure.com/;LiveEndpoint=https://your-region.livediagnostics.monitor.azure.com/;ApplicationId=your-app-id"
+}
