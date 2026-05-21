@@ -91,9 +91,15 @@ class MainActivity : FlutterActivity() {
             override fun onReadyForSpeech(params: Bundle?) {
                 eventSink?.success(mapOf("type" to "status", "value" to "listening"))
             }
-            override fun onBeginningOfSpeech() {}
-            override fun onRmsChanged(rmsdB: Float) {}
-            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onBeginningOfSpeech() {
+                // No action needed: speech start is tracked via onReadyForSpeech status event
+            }
+            override fun onRmsChanged(rmsdB: Float) {
+                // No action needed: RMS audio level changes are not exposed to the Flutter layer
+            }
+            override fun onBufferReceived(buffer: ByteArray?) {
+                // No action needed: raw audio buffer processing is handled by the SpeechRecognizer
+            }
             override fun onEndOfSpeech() {
                 eventSink?.success(mapOf("type" to "status", "value" to "processing"))
             }
@@ -114,7 +120,9 @@ class MainActivity : FlutterActivity() {
                     eventSink?.success(mapOf("type" to "partial", "value" to text))
                 }
             }
-            override fun onEvent(eventType: Int, params: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {
+                // No action needed: reserved Android callback with no defined semantic for this use case
+            }
         })
 
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
