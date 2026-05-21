@@ -8,6 +8,7 @@ import 'package:flutter_app/core/utils/logger.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/domain/entities/service_request.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_bloc.dart';
 import 'package:flutter_app/presentation/bloc/auth/auth_state.dart';
@@ -43,6 +44,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   List<ServiceRequest>? _unratedServices;
   bool _unratedServicesLoading = false;
   bool _isDark = false;
+  bool _wsInitialized = false;
   Timer? _locationTimer;
   String? _activeRequestId;
   String? _lastKnownServiceCity;
@@ -81,6 +83,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
     sl<ThemeService>().removeListener(_onThemeChanged);
     // LocationCubit is a singleton — do not close it here.
     super.dispose();
+  }
+
+  Future<void> _initWebSocket() async {
+    if (_wsInitialized) return;
+    _wsInitialized = true;
+    final token = await sl<AuthLocalDataSource>().getAccessToken();
+    sl<WebSocketService>().connect(token: token);
   }
 
   void _startLocationTracking(
@@ -222,6 +231,12 @@ class _ClientHomePageState extends State<ClientHomePage> {
         }
 
         final user = state.user;
+
+        if (!_wsInitialized) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _initWebSocket();
+          });
+        }
 
         return BlocListener<LocationCubit, LocationState>(
           bloc: _locationCubit,
@@ -958,6 +973,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                           clientUserId: userId,
                           technicianName: request.technicianName,
                           technicianRating: request.technicianRating,
+                          technicianPhotoUrl: request.technicianPhotoUrl,
                         ),
                       ),
                     )

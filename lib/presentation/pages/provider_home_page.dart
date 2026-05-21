@@ -44,6 +44,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   String _verificationStatus = 'UNVERIFIED';
 
   bool _wsInitialized = false;
+  String? _wsUserId;
   final List<Map<String, dynamic>> _newRequests = [];
   OverlayEntry? _notificationOverlay;
 
@@ -112,7 +113,17 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     // so servicesCount is read from the tenant schema instead of public.
     _locationCubit.stream
         .firstWhere((s) => s is LocationLoaded)
-        .then((_) { if (mounted) _initProfile(); })
+        .then((s) {
+          if (!mounted) return;
+          _initProfile();
+          final userId = _wsUserId;
+          if (userId != null) {
+            sl<WebSocketService>().joinTechnicianRoom(
+              userId,
+              (s as LocationLoaded).serviceCity,
+            );
+          }
+        })
         .catchError((_) {});
     _isDark = sl<ThemeService>().isDark;
     sl<ThemeService>().addListener(_onThemeChanged);
@@ -161,6 +172,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
   Future<void> _initWebSocket(String userId) async {
     if (_wsInitialized) return;
     _wsInitialized = true;
+    _wsUserId = userId;
 
     final token = await sl<AuthLocalDataSource>().getAccessToken();
     final wsService = sl<WebSocketService>();
@@ -1353,6 +1365,7 @@ class _ProviderHomePageState extends State<ProviderHomePage> {
     final clientInfo = <String, dynamic>{
       'fullName': request['clientName']?.toString() ?? request['userId']?.toString() ?? 'Cliente',
       'phoneNumber': request['addressText']?.toString(),
+      'profilePhotoUrl': request['clientPhotoUrl']?.toString(),
     };
 
     final statusLabel = isInProgress ? 'En progreso' : 'Asignado';

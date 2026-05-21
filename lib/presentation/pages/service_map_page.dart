@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_app/core/constants/app_colors.dart';
 import 'package:flutter_app/core/di/injection_container.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
+import 'package:flutter_app/domain/entities/service_request.dart';
+import 'package:flutter_app/presentation/widgets/service_summary_modal.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,6 +33,7 @@ class ServiceMapPage extends StatefulWidget {
   // Technician info shown in client view.
   final String? technicianName;
   final double? technicianRating;
+  final String? technicianPhotoUrl;
 
   const ServiceMapPage({
     super.key,
@@ -50,6 +53,7 @@ class ServiceMapPage extends StatefulWidget {
     this.clientUserId,
     this.technicianName,
     this.technicianRating,
+    this.technicianPhotoUrl,
   });
 
   @override
@@ -167,9 +171,6 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
               const LocationSettings(accuracy: LocationAccuracy.high),
         );
         if (!mounted) return;
-        final String userId = widget.isClientView
-            ? (widget.clientUserId ?? widget.technicianId)
-            : widget.technicianId;
         setState(() {
           if (widget.isClientView) {
             _clientLocation = LatLng(pos.latitude, pos.longitude);
@@ -203,17 +204,16 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
 
   Future<void> _markComplete() async {
     setState(() => _markingComplete = true);
-    final String userId = widget.isClientView
-        ? (widget.clientUserId ?? '')
-        : widget.technicianId;
     final String role = widget.isClientView ? 'client' : 'technician';
     try {
-      await sl<Dio>().patch(
+      final response = await sl<Dio>().patch(
         '/service-requests/${widget.requestId}/mark-complete',
         data: {'role': role},
         options: Options(headers: {'X-Tenant-ID': widget.tenantId}),
       );
       if (!mounted) return;
+      final data = response.data as Map<String, dynamic>;
+      final isNowCompleted = data['status']?.toString() == 'COMPLETED';
       setState(() {
         if (widget.isClientView) {
           _clientMarkedComplete = true;
@@ -227,6 +227,13 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
           backgroundColor: AppColors.success,
         ),
       );
+      if (isNowCompleted && widget.isClientView) {
+        await ServiceSummaryModal.show(
+          context,
+          serviceRequest: _parseServiceRequest(data),
+          tenantId: widget.tenantId,
+        );
+      }
       _navigateToHome();
     } catch (_) {
       if (!mounted) return;
@@ -236,6 +243,48 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
     } finally {
       if (mounted) setState(() => _markingComplete = false);
     }
+  }
+
+  ServiceRequest _parseServiceRequest(Map<String, dynamic> json) {
+    return ServiceRequest(
+      id: json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      assignedTechnicianId: json['assignedTechnicianId']?.toString(),
+      problema: json['problema']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'UNKNOWN',
+      urgency: json['urgency']?.toString(),
+      requestedSkills: (json['requestedSkills'] is List)
+          ? (json['requestedSkills'] as List).map((s) => s.toString()).toList()
+          : const [],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      addressText: json['addressText']?.toString(),
+      serviceCity: json['serviceCity']?.toString(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
+      startedAt: json['startedAt'] != null
+          ? DateTime.tryParse(json['startedAt'].toString())
+          : null,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'].toString())
+          : null,
+      clientMarkedComplete: json['clientMarkedComplete'] as bool? ?? false,
+      technicianMarkedComplete:
+          json['technicianMarkedComplete'] as bool? ?? false,
+      displacementDistanceKm:
+          (json['displacementDistanceKm'] as num?)?.toDouble(),
+      finalPrice: json['finalPrice'] != null
+          ? double.tryParse(json['finalPrice'].toString())
+          : null,
+      technicianName: json['technicianName']?.toString(),
+      technicianPhotoUrl: json['technicianPhotoUrl']?.toString(),
+      technicianRating: (json['technicianRating'] as num?)?.toDouble(),
+      categoryName: json['categoryName']?.toString(),
+    );
   }
 
   void _showComingSoon() {
@@ -264,6 +313,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
     final statusColor = isInProgress ? AppColors.success : AppColors.primary;
     final techName = widget.technicianName ?? 'Técnico';
     final rating = widget.technicianRating;
+    final techPhoto = widget.technicianPhotoUrl;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,11 +343,17 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
         Row(
           children: [
             CircleAvatar(
+              radius: 24,
               backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                techName.isNotEmpty ? techName[0].toUpperCase() : 'T',
-                style: const TextStyle(color: AppColors.primary),
-              ),
+              backgroundImage: techPhoto != null && techPhoto.isNotEmpty
+                  ? NetworkImage(techPhoto)
+                  : null,
+              child: techPhoto == null || techPhoto.isEmpty
+                  ? Text(
+                      techName.isNotEmpty ? techName[0].toUpperCase() : 'T',
+                      style: const TextStyle(color: AppColors.primary),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -392,6 +448,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
     ColorScheme colorScheme,
     String clientName,
     String? clientPhone,
+    String? clientPhoto,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,11 +465,17 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
         Row(
           children: [
             CircleAvatar(
+              radius: 24,
               backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C',
-                style: const TextStyle(color: AppColors.primary),
-              ),
+              backgroundImage: clientPhoto != null && clientPhoto.isNotEmpty
+                  ? NetworkImage(clientPhoto)
+                  : null,
+              child: clientPhoto == null || clientPhoto.isEmpty
+                  ? Text(
+                      clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C',
+                      style: const TextStyle(color: AppColors.primary),
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -512,6 +575,8 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
         widget.clientInfo['fullName']?.toString() ?? 'Cliente';
     final clientPhone =
         widget.clientInfo['phoneNumber']?.toString();
+    final clientPhoto =
+        widget.clientInfo['profilePhotoUrl']?.toString();
 
     final colorScheme = Theme.of(context).colorScheme;
     final techPoint = _technicianLocation ?? _clientLocation;
@@ -662,6 +727,7 @@ class _ServiceMapPageState extends State<ServiceMapPage> {
                         colorScheme,
                         clientName,
                         clientPhone,
+                        clientPhoto,
                       ),
               ),
             ],
