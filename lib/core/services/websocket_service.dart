@@ -198,5 +198,19 @@ class WebSocketService {
     _socket?.off('new_chat_message');
   }
 
+  void onPaymentCompleted(void Function(Map<String, dynamic>) handler) {
+    _socket?.on('payment_completed', (data) {
+      if (data is Map<String, dynamic>) {
+        handler(data);
+      } else if (data is Map) {
+        handler(Map<String, dynamic>.from(data));
+      }
+    });
+  }
+
+  void offPaymentCompleted() {
+    _socket?.off('payment_completed');
+  }
+
   bool get isConnected => _socket?.connected ?? false;
 }

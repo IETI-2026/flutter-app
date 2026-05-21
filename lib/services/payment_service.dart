@@ -1,9 +1,6 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_app/core/di/injection_container.dart';
-import 'package:flutter_app/core/services/tenant_service.dart';
-import '../utils/constants.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_app/core/constants/app_constants.dart';
+import 'package:flutter_app/utils/constants.dart';
 
 class PaymentMethodModel {
   final String id;
@@ -46,6 +43,9 @@ class PaymentModel {
   final String netAmount;
   final String commissionAmount;
   final double commissionRate;
+  final String? gatewayReference;
+  final String? receiptUrl;
+  final DateTime? paidAt;
 
   const PaymentModel({
     required this.id,
@@ -56,6 +56,9 @@ class PaymentModel {
     required this.netAmount,
     required this.commissionAmount,
     required this.commissionRate,
+    this.gatewayReference,
+    this.receiptUrl,
+    this.paidAt,
   });
 
   factory PaymentModel.fromJson(Map<String, dynamic> json) {
@@ -68,104 +71,68 @@ class PaymentModel {
       netAmount: json['netAmount']?.toString() ?? '0',
       commissionAmount: json['commissionAmount']?.toString() ?? '0',
       commissionRate: (json['commissionRate'] as num?)?.toDouble() ?? 0,
+      gatewayReference: json['gatewayReference']?.toString(),
+      receiptUrl: json['receiptUrl']?.toString(),
+      paidAt: json['paidAt'] != null
+          ? DateTime.tryParse(json['paidAt'].toString())
+          : null,
     );
   }
+
+  bool get isEpayco => paymentMethod.toUpperCase() == 'EPAYCO';
+  bool get isPending => status == 'PENDING';
+  bool get isProcessing => status == 'PROCESSING';
+  bool get isCompleted => status == 'COMPLETED';
 }
 
 class PaymentService {
-  static final PaymentService _instance = PaymentService._internal();
-  factory PaymentService() => _instance;
-  PaymentService._internal();
+  final Dio _dio;
 
-  String _extractErrorMessage(http.Response response, String fallback) {
-    try {
-      final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic>) {
-        final message = decoded['message'];
-        if (message is List) {
-          return message.join(' | ');
-        }
-        if (message != null && message.toString().trim().isNotEmpty) {
-          return message.toString();
-        }
+  PaymentService({required Dio dio}) : _dio = dio;
+
+  String _extractError(DioException e, String fallback) {
+    final data = e.response?.data;
+    if (data is Map<String, dynamic>) {
+      final msg = data['message'];
+      if (msg is List) return msg.join(' | ');
+      if (msg != null && msg.toString().trim().isNotEmpty) {
+        return msg.toString();
       }
-    } catch (_) {}
-    return '$fallback (${response.statusCode})';
-  }
-
-  Future<Map<String, String>> _authHeaders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(StorageKeys.accessToken);
-
-    if (token == null || token.isEmpty) {
-      throw Exception('No hay sesión activa');
+      final err = data['error'];
+      if (err is Map && err['message'] != null) {
+        return err['message'].toString();
+      }
     }
-
-    final normalizedToken = token.toLowerCase().startsWith('bearer ')
-        ? token
-        : 'Bearer $token';
-
-    final tenantId = sl<TenantService>().tenantId;
-
-    return {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': normalizedToken,
-      'X-Tenant-ID': tenantId,
-    };
+    return '$fallback (${e.response?.statusCode ?? 'sin respuesta'})';
   }
 
   Future<List<String>> getAvailableMethods() async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/methods/available',
-    );
-
-    final response = await http.get(url, headers: headers);
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractErrorMessage(
-          response,
-          'No se pudieron obtener métodos disponibles',
-        ),
+    try {
+      final resp = await _dio.get(
+        '${ApiConstants.paymentsEndpoint}/methods/available',
       );
-    }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
+      final data = resp.data;
+      if (data is List) return data.map((e) => e.toString()).toList();
       return [];
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudieron obtener métodos disponibles'));
     }
-
-    return decoded.map((item) => item.toString()).toList();
   }
 
   Future<List<PaymentMethodModel>> getMyMethods() async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/methods/mine',
-    );
-
-    final response = await http.get(url, headers: headers);
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractErrorMessage(
-          response,
-          'No se pudieron obtener tus métodos de pago',
-        ),
+    try {
+      final resp = await _dio.get(
+        '${ApiConstants.paymentsEndpoint}/methods/mine',
       );
+      final data = resp.data;
+      if (data is! List) return [];
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(PaymentMethodModel.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudieron obtener tus métodos de pago'));
     }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
-      return [];
-    }
-
-    return decoded
-        .whereType<Map<String, dynamic>>()
-        .map(PaymentMethodModel.fromJson)
-        .toList();
   }
 
   Future<PaymentMethodModel> createMethod({
@@ -175,99 +142,72 @@ class PaymentService {
     String? accountIdentifier,
     bool isDefault = false,
   }) async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/methods',
-    );
-
-    final payload = {
-      'methodType': methodType,
-      if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
-      if (accountHolder != null && accountHolder.trim().isNotEmpty)
-        'accountHolder': accountHolder.trim(),
-      if (accountIdentifier != null && accountIdentifier.trim().isNotEmpty)
-        'accountIdentifier': accountIdentifier.trim(),
-      'isDefault': isDefault,
-    };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(payload),
-    );
-
-    if (response.statusCode != 201) {
-      throw Exception(
-        _extractErrorMessage(
-          response,
-          'No se pudo registrar el método de pago',
-        ),
+    try {
+      final resp = await _dio.post(
+        '${ApiConstants.paymentsEndpoint}/methods',
+        data: {
+          'methodType': methodType,
+          if (alias != null && alias.trim().isNotEmpty) 'alias': alias.trim(),
+          if (accountHolder != null && accountHolder.trim().isNotEmpty)
+            'accountHolder': accountHolder.trim(),
+          if (accountIdentifier != null && accountIdentifier.trim().isNotEmpty)
+            'accountIdentifier': accountIdentifier.trim(),
+          'isDefault': isDefault,
+        },
       );
+      return PaymentMethodModel.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudo registrar el método de pago'));
     }
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    return PaymentMethodModel.fromJson(decoded);
   }
 
   Future<PaymentMethodModel> setDefaultMethod(String paymentMethodId) async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/methods/$paymentMethodId/default',
-    );
-
-    final response = await http.patch(url, headers: headers);
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractErrorMessage(
-          response,
-          'No se pudo establecer método predeterminado',
-        ),
+    try {
+      final resp = await _dio.patch(
+        '${ApiConstants.paymentsEndpoint}/methods/$paymentMethodId/default',
       );
+      return PaymentMethodModel.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudo establecer método predeterminado'));
     }
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    return PaymentMethodModel.fromJson(decoded);
   }
 
   Future<void> removeMethod(String paymentMethodId) async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/methods/$paymentMethodId',
-    );
-
-    final response = await http.delete(url, headers: headers);
-
-    if (response.statusCode != 204) {
-      throw Exception(
-        _extractErrorMessage(response, 'No se pudo eliminar el método de pago'),
+    try {
+      await _dio.delete(
+        '${ApiConstants.paymentsEndpoint}/methods/$paymentMethodId',
       );
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudo eliminar el método de pago'));
     }
   }
 
   Future<List<PaymentModel>> getMyPayments() async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/mine',
-    );
+    try {
+      final resp = await _dio.get('${ApiConstants.paymentsEndpoint}/mine');
+      final data = resp.data;
+      if (data is! List) return [];
+      return data
+          .whereType<Map<String, dynamic>>()
+          .map(PaymentModel.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudieron obtener los pagos'));
+    }
+  }
 
-    final response = await http.get(url, headers: headers);
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractErrorMessage(response, 'No se pudieron obtener los pagos'),
+  Future<PaymentModel?> getPaymentByServiceRequest(
+    String serviceRequestId,
+  ) async {
+    try {
+      final resp = await _dio.get(
+        '${ApiConstants.paymentsEndpoint}/service-request/$serviceRequestId',
       );
+      return PaymentModel.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      throw Exception(_extractError(e, 'No se pudo obtener el pago de la solicitud'));
     }
-
-    final decoded = jsonDecode(response.body);
-    if (decoded is! List) {
-      return [];
-    }
-
-    return decoded
-        .whereType<Map<String, dynamic>>()
-        .map(PaymentModel.fromJson)
-        .toList();
   }
 
   Future<PaymentModel> createPayment({
@@ -279,36 +219,24 @@ class PaymentService {
     String? externalTransactionId,
     String? gatewayReference,
   }) async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}',
-    );
-
-    final payload = {
-      'serviceRequestId': serviceRequestId,
-      'grossAmount': grossAmount,
-      if (paymentMethod != null) 'paymentMethod': paymentMethod,
-      if (paymentMethodId != null) 'paymentMethodId': paymentMethodId,
-      if (commissionRate != null) 'commissionRate': commissionRate,
-      if (externalTransactionId != null)
-        'externalTransactionId': externalTransactionId,
-      if (gatewayReference != null) 'gatewayReference': gatewayReference,
-    };
-
-    final response = await http.post(
-      url,
-      headers: headers,
-      body: jsonEncode(payload),
-    );
-
-    if (response.statusCode != 201) {
-      throw Exception(
-        _extractErrorMessage(response, 'No se pudo crear el pago'),
+    try {
+      final resp = await _dio.post(
+        ApiConstants.paymentsEndpoint,
+        data: {
+          'serviceRequestId': serviceRequestId,
+          'grossAmount': grossAmount,
+          if (paymentMethod != null) 'paymentMethod': paymentMethod,
+          if (paymentMethodId != null) 'paymentMethodId': paymentMethodId,
+          if (commissionRate != null) 'commissionRate': commissionRate,
+          if (externalTransactionId != null)
+            'externalTransactionId': externalTransactionId,
+          if (gatewayReference != null) 'gatewayReference': gatewayReference,
+        },
       );
+      return PaymentModel.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudo crear el pago'));
     }
-
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    return PaymentModel.fromJson(decoded);
   }
 
   Future<PaymentModel> updatePaymentStatus({
@@ -317,34 +245,24 @@ class PaymentService {
     String? reason,
     String? receiptUrl,
   }) async {
-    final headers = await _authHeaders();
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}${ApiConstants.paymentsEndpoint}/$paymentId/status',
-    );
-
-    final payload = {
-      'status': status,
-      if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
-      if (receiptUrl != null && receiptUrl.trim().isNotEmpty)
-        'receiptUrl': receiptUrl.trim(),
-    };
-
-    final response = await http.patch(
-      url,
-      headers: headers,
-      body: jsonEncode(payload),
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-        _extractErrorMessage(
-          response,
-          'No se pudo actualizar el estado del pago',
-        ),
+    try {
+      final resp = await _dio.patch(
+        '${ApiConstants.paymentsEndpoint}/$paymentId/status',
+        data: {
+          'status': status,
+          if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+          if (receiptUrl != null && receiptUrl.trim().isNotEmpty)
+            'receiptUrl': receiptUrl.trim(),
+        },
       );
+      return PaymentModel.fromJson(resp.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw Exception(_extractError(e, 'No se pudo actualizar el estado del pago'));
     }
+  }
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    return PaymentModel.fromJson(decoded);
+  /// Devuelve la URL del checkout de ePayco para abrir en el navegador.
+  String getEpaycoCheckoutUrl(String paymentId) {
+    return '${AppConstants.baseUrl}/payments/$paymentId/epayco-checkout';
   }
 }

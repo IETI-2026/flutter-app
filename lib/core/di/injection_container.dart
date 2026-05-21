@@ -5,6 +5,7 @@ import 'package:flutter_app/core/services/tenant_service.dart';
 import 'package:flutter_app/core/services/theme_service.dart';
 import 'package:flutter_app/core/services/websocket_service.dart';
 import 'package:flutter_app/core/utils/logger.dart';
+import 'package:flutter_app/services/payment_service.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource.dart';
 import 'package:flutter_app/data/datasources/auth_local_datasource_impl.dart';
 import 'package:flutter_app/data/datasources/auth_remote_datasource.dart';
@@ -369,4 +370,6 @@ Future<void> initializeDependencies() async {
       deleteAddress: sl(),
     ),
   );
+
+  sl.registerLazySingleton<PaymentService>(() => PaymentService(dio: sl()));
 }
